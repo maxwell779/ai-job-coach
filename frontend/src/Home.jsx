@@ -40,9 +40,14 @@ function MiniCalendar({ plans }) {
 function ScoreTrend({ sessions }) {
   const data = sessions.slice(0, 8).reverse()
   if (data.length === 0) return null
+  const first = data[0].score, last = data[data.length - 1].score
+  const delta = data.length >= 2 ? last - first : null
   return (
     <div className="card">
-      <h2>📈 모의면접 점수 추이</h2>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0 }}>📈 모의면접 점수 추이</h2>
+        {delta != null && <span style={{ fontWeight: 800, color: delta >= 0 ? 'var(--ok)' : 'var(--up)' }}>{delta >= 0 ? `▲ +${delta}점 향상` : `▼ ${delta}점`}</span>}
+      </div>
       <div className="trend">
         {data.map((s, i) => (
           <div className="trend-col" key={i}>
@@ -52,6 +57,29 @@ function ScoreTrend({ sessions }) {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function WeakPoints({ sessions }) {
+  if (sessions.length === 0) return null
+  const agg = {}
+  for (const s of sessions) for (const [k, v] of Object.entries(s.weak || {})) agg[k] = (agg[k] || 0) + v
+  const top = Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 5)
+  if (top.length === 0) return null
+  const max = top[0][1]
+  return (
+    <div className="card">
+      <h2>🎯 반복되는 약점 (연습에서 자주 지적됨)</h2>
+      <p className="desc">이 항목들을 집중 보완하면 점수가 빨리 올라요.</p>
+      {top.map(([k, v]) => (
+        <div key={k} style={{ margin: '8px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}><b>{k}</b><span className="muted">{v}회 지적</span></div>
+          <div style={{ height: 8, background: '#eef0f3', borderRadius: 99, marginTop: 4 }}>
+            <div style={{ width: `${Math.round((v / max) * 100)}%`, height: '100%', background: 'var(--up)', borderRadius: 99 }} />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -146,6 +174,7 @@ export default function Home({ onNav }) {
       )}
 
       <ScoreTrend sessions={sessions} />
+      <WeakPoints sessions={sessions} />
 
       <MiniCalendar plans={plans} />
 

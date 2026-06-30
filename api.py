@@ -191,6 +191,17 @@ def resume_review(body: ReviewIn):
     return resume.review_resume(body.text, body.job_title)
 
 
+class PatternIn(BaseModel):
+    passed: list[str] = []
+    failed: list[str] = []
+    specs: list[str] = []
+
+
+@app.post("/api/resume/pattern")
+def resume_pattern(body: PatternIn):
+    return resume.result_pattern(body.passed, body.failed, body.specs)
+
+
 # ── 모의 면접 ──
 class QIn(BaseModel):
     job_title: str

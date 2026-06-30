@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { draftResume, reviewResume, extractText } from './api.js'
+import { draftResume, reviewResume, extractText, resultPattern } from './api.js'
 import { MD, Loading, ErrorBox } from './ui.jsx'
-import { useCollection, add, remove, materialDocs } from './store.js'
+import { useCollection, add, remove, update, materialDocs } from './store.js'
 import { ESSAY_PROMPTS } from './essayBank.js'
 
 export default function Resume({ initialCompany = '', initialJob = '' }) {
@@ -153,28 +153,61 @@ function Review() {
   )
 }
 
-// 저장된 자소서를 회사별로 묶어 보기
+// 저장된 자소서를 회사별로 묶어 보기 + 결과 태그(어떤 자소서가 통했는지)
+const RESULTS = ['미정', '서류합격', '면접', '최종합격', '불합격']
+const RESULT_COLOR = { '미정': '#9ca3af', '서류합격': '#7c3aed', '면접': '#f59e0b', '최종합격': '#16a34a', '불합격': '#9ca3af' }
 function MyEssays() {
   const docs = useCollection('resumes')
   const groups = {}
   for (const d of docs) { const k = d.company || '회사 미지정'; (groups[k] = groups[k] || []).push(d) }
   const companies = Object.keys(groups)
+  const passedDocs = docs.filter((d) => ['서류합격', '면접', '최종합격'].includes(d.result))
+  const failedDocs = docs.filter((d) => d.result === '불합격')
+  const [pattern, setPattern] = useState(''); const [analyzing, setAnalyzing] = useState(''); const [perr, setPerr] = useState('')
+  async function analyze() {
+    setAnalyzing(true); setPattern(''); setPerr('')
+    try {
+      const r = await resultPattern({
+        passed: passedDocs.map((d) => `[${d.company || ''} ${d.title || ''}] ${d.content || ''}`),
+        failed: failedDocs.map((d) => `[${d.company || ''} ${d.title || ''}] ${d.content || ''}`),
+        specs: materialDocs().map((m) => m.text),
+      })
+      setPattern(r.pattern)
+    } catch (e) { setPerr(e.message) }
+    setAnalyzing(false)
+  }
   return (
     <div className="card">
       <h2>📁 내 자소서 ({docs.length})</h2>
       {docs.length === 0 && <p className="hint">✍️ 작성·생성 탭에서 자소서를 만들고 "내 자소서에 저장"하면 회사별로 모여요.</p>}
+      {docs.length > 0 && <p className="desc">결과를 기록하면 <b>어떤 자소서·스펙이 통했는지</b> 패턴을 분석해요. (서류 이상 통과 {passedDocs.length}개)</p>}
+      {(passedDocs.length > 0 || failedDocs.length > 0) && (
+        <div style={{ marginBottom: 10 }}>
+          <button className="btn" onClick={analyze} disabled={analyzing}>{analyzing ? '분석 중…' : '🔍 합격 패턴 분석(자소서×스펙)'}</button>
+          {perr && <div style={{ marginTop: 10 }}><ErrorBox>{perr}</ErrorBox></div>}
+          {analyzing && <Loading text="합격·스펙 패턴을 분석하는 중…" />}
+          {pattern && <div style={{ marginTop: 12, padding: '12px 14px', background: '#f0fff4', borderRadius: 10 }}><MD>{pattern}</MD></div>}
+        </div>
+      )}
       {companies.map((co) => (
         <div key={co} style={{ marginTop: 14 }}>
           <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--brand)' }}>🏢 {co} <span className="tag gray">{groups[co].length}</span></div>
           {groups[co].map((d) => (
             <details className="list-item" key={d.id}>
-              <summary style={{ cursor: 'pointer', fontWeight: 700, display: 'flex', justifyContent: 'space-between' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 700, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                 <span>{d.title} {d.job && <span className="muted">· {d.job}</span>}</span>
-                <span className="tag gray">{(d.content || '').replace(/\s/g, '').length}자</span>
+                <span>{d.result && d.result !== '미정' && <span className="tag" style={{ background: RESULT_COLOR[d.result] + '22', color: RESULT_COLOR[d.result] }}>{d.result}</span>} <span className="tag gray">{(d.content || '').replace(/\s/g, '').length}자</span></span>
               </summary>
               {d.question && <div className="meta" style={{ marginTop: 6 }}>문항: {d.question}</div>}
               <div style={{ whiteSpace: 'pre-wrap', fontSize: 14, lineHeight: 1.7, marginTop: 8 }}>{d.content}</div>
-              <button className="btn ghost sm" onClick={() => remove('resumes', d.id)} style={{ marginTop: 8 }}>삭제</button>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
+                <span className="hint">결과:</span>
+                <select value={d.result || '미정'} onChange={(e) => update('resumes', d.id, { result: e.target.value })}
+                  style={{ width: 130, color: RESULT_COLOR[d.result || '미정'], fontWeight: 700 }}>
+                  {RESULTS.map((r) => <option key={r}>{r}</option>)}
+                </select>
+                <button className="btn ghost sm" onClick={() => remove('resumes', d.id)}>삭제</button>
+              </div>
             </details>
           ))}
         </div>

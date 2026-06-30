@@ -30,6 +30,9 @@ export const draftResume = (body) =>
 export const reviewResume = (body) =>
   fetch('/api/resume/review', { method: 'POST', headers: J, body: JSON.stringify(body) }).then(handle)
 
+export const resultPattern = (body) =>
+  fetch('/api/resume/pattern', { method: 'POST', headers: J, body: JSON.stringify(body) }).then(handle)
+
 export const genQuestions = (body) =>
   fetch('/api/interview/questions', { method: 'POST', headers: J, body: JSON.stringify(body) }).then(handle)
 

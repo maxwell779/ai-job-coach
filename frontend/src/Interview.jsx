@@ -161,7 +161,14 @@ function QuizRunner({ questions, job, cfg }) {
       const r = (await sessionReport({ qa_list: log, job_title: job })).report
       setReport(r)
       const sc = parseScore(r)
-      if (sc != null) { add('sessions', { score: sc, job, count: log.length, date: new Date().toISOString().slice(0, 10) }); setSavedScore(true) }
+      // 약점 집계: 음성·표정 dims 중 good이 아닌 항목 카운트
+      const weak = {}
+      for (const x of log) {
+        for (const d of [...(x.delivery?.dims || []), ...(x.face?.dims || [])]) {
+          if (d.status && d.status !== 'good') weak[d.key] = (weak[d.key] || 0) + 1
+        }
+      }
+      if (sc != null) { add('sessions', { score: sc, job, count: log.length, weak, date: new Date().toISOString().slice(0, 10) }); setSavedScore(true) }
     } catch (e) { setReport('리포트 생성 실패: ' + e.message) }
     setReporting(false)
   }
@@ -292,7 +299,7 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
       const comm = delivery ? Math.max(0, 100 - delivery.tensionScore) : null
       const attitude = faceRes?.ok ? faceRes.score : null
       if (content != null || comm != null || attitude != null) setTri({ content, comm, attitude })
-      onRecord?.({ question: q, answer, delivery })
+      onRecord?.({ question: q, answer, delivery, face: faceRes })
     } catch (e) { setErr(e.message) }
     setLoading(false)
   }

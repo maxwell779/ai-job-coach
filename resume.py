@@ -65,6 +65,35 @@ def draft_resume(company: str, job_title: str, experience: str,
     return {"draft": agent.quick_complete(prompt).strip(), "context_used": ctx, "used_materials": used}
 
 
+def result_pattern(passed=None, failed=None, specs=None) -> dict:
+    """합격/통과한 자소서와 불합격 자소서, 내 스펙·경험을 비교해 '통하는 패턴'을 분석한다."""
+    passed = [p for p in (passed or []) if p]
+    failed = [f for f in (failed or []) if f]
+    specs = [s for s in (specs or []) if s]
+    if not passed and not failed:
+        return {"pattern": "결과(서류합격/면접/최종합격/불합격)를 기록한 자소서가 있어야 분석할 수 있어요. 내 자소서에서 결과를 먼저 선택해 주세요."}
+    P = "\n---\n".join(passed)[:4000]
+    F = "\n---\n".join(failed)[:2500]
+    S = "\n".join(f"- {s}" for s in specs)[:1500]
+    prompt = f"""당신은 채용 데이터 분석가이자 자소서 코치입니다. 지원자의 합격/불합격 이력과 스펙을 비교해 '무엇이 통했는지' 분석하세요.
+
+[서류 이상 통과한 자소서]
+{P or '(없음)'}
+[불합격 자소서]
+{F or '(없음)'}
+[내 스펙·경험]
+{S or '(없음)'}
+
+마크다운으로:
+## 통하는 패턴 (합격 자소서·스펙의 공통 강점)
+## 불합격과의 차이 (있다면)
+## 내 스펙 중 가장 잘 먹힌 것 / 덜 활용된 것
+## 다음 지원에 강화할 전략 (구체적으로 2~3가지)
+
+규칙: 표본이 적으면 단정하지 말고 '경향'으로 표현. 데이터에 있는 것만 근거로."""
+    return {"pattern": agent.quick_complete(prompt).strip(), "n_pass": len(passed), "n_fail": len(failed)}
+
+
 def review_resume(text: str, job_title: str = "") -> dict:
     """작성한 자소서를 첨삭한다(강점·약점·문항별 개선·표현).
 
