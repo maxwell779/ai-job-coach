@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+*.log
+dart_corp_index.json
+node_modules/
+frontend/dist/
+.DS_Store
