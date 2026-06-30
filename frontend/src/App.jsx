@@ -1,18 +1,16 @@
 import { useState } from 'react'
 import Home from './Home.jsx'
-import CompanyResearch from './CompanyResearch.jsx'
+import Explore from './Explore.jsx'
 import Resume from './Resume.jsx'
 import Interview from './Interview.jsx'
 import Jobs from './Jobs.jsx'
 import Board from './Board.jsx'
-import RoleInsight from './RoleInsight.jsx'
 
 const TABS = [
   { id: 'home', icon: '🏠', label: '홈', desc: '나의 취업 준비 현황 한눈에' },
-  { id: 'company', icon: '🏢', label: '기업 분석', desc: '지원할 회사를 DART로 분석' },
-  { id: 'role', icon: '📰', label: '직무·뉴스', desc: '직무 인사이트와 관련 뉴스' },
+  { id: 'explore', icon: '🏢', label: '기업·직무 분석', desc: '기업(DART)·직무·뉴스를 한 번에 통합 분석' },
   { id: 'resume', icon: '📝', label: '자소서', desc: '작성·첨삭·회사별 관리' },
-  { id: 'interview', icon: '🎤', label: '모의 면접', desc: '음성 면접 + 목소리 분석' },
+  { id: 'interview', icon: '🎤', label: '모의 면접', desc: '음성·표정 면접 + 페르소나·꼬리질문' },
   { id: 'jobs', icon: '🔎', label: '채용공고', desc: '공공 채용정보 검색' },
   { id: 'board', icon: '📋', label: '내 보드', desc: '지원현황·일정·스펙·자료' },
 ]
@@ -42,11 +40,18 @@ export default function App() {
           <h1>{active.icon} {active.label}</h1>
           <p>{active.desc}</p>
         </header>
+        {(ctx.company || ctx.role) && (
+          <div className="ctxbar">
+            <span className="ctx-label">준비 중</span>
+            {ctx.company && <span className="ctx-chip">🏢 {ctx.company}</span>}
+            {ctx.role && <span className="ctx-chip">🎯 {ctx.role}</span>}
+            <button className="ctx-clear" onClick={() => setCtx({ company: '', role: '' })}>✕ 초기화</button>
+          </div>
+        )}
         <div className="content">
           {tab === 'home' && <Home onNav={goTo} />}
-          {tab === 'company' && <CompanyResearch goTo={goTo} />}
-          {tab === 'role' && <RoleInsight />}
-          {tab === 'resume' && <Resume />}
+          {tab === 'explore' && <Explore goTo={goTo} onContext={(p) => setCtx((c) => ({ ...c, ...p }))} />}
+          {tab === 'resume' && <Resume initialCompany={ctx.company} initialJob={ctx.role} />}
           {tab === 'interview' && <Interview initialCompany={ctx.company} initialJob={ctx.role} />}
           {tab === 'jobs' && <Jobs goTo={goTo} />}
           {tab === 'board' && <Board />}

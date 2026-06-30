@@ -171,6 +171,23 @@ export function analyzeDelivery(metrics, transcript = '') {
     dims.push(dim('말끝', 'good', '단단함', '문장 끝까지 자신있게 맺었어요.'))
   }
 
+  // 7) 억양(톤) — 음높이 변화가 너무 적으면 단조로움
+  if (metrics.pitchMean > 0 && metrics.pitchCV < 0.05 && chars > 15) {
+    dims.push(dim('억양', 'warn', '단조로움', '톤 변화가 적어 단조롭게 들려요. 핵심 단어에 강세를 주면 전달력이 올라가요.')); tension += 8
+  } else if (metrics.pitchMean > 0 && metrics.pitchCV >= 0.05 && metrics.pitchCV <= 0.15) {
+    dims.push(dim('억양', 'good', '생동감 있음', '적절한 억양으로 생동감 있게 들려요.'))
+  } else if (metrics.pitchMean > 0) {
+    dims.push(dim('억양', 'good', '풍부함', '억양 변화가 있어요.'))
+  }
+
+  // 8) 발화 에너지 — 평균 성량(자신감의 객관 지표, 보조)
+  if (metrics.volMean != null) {
+    const energy = Math.min(100, Math.round(metrics.volMean * 1400))
+    const st = energy >= 50 ? 'good' : energy >= 28 ? 'warn' : 'bad'
+    dims.push(dim('발화 에너지', st, `${energy}점`, st === 'good' ? '에너지가 충분해 또렷하게 전달돼요.' : '목소리에 힘을 더 실으면 자신감 있게 들려요.'))
+    if (st === 'bad') tension += 6
+  }
+
   const tensionScore = Math.max(0, Math.min(100, tension))
   const level = tensionScore >= 60 ? '긴장 높음' : tensionScore >= 35 ? '약간 긴장' : '안정적'
   return { tensionScore, level, charsPerSec, fillerCount, fillers: found, dims, metrics }

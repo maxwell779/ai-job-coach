@@ -4,7 +4,7 @@ import { MD, Loading, ErrorBox } from './ui.jsx'
 import { useCollection, add, remove, materialDocs } from './store.js'
 import { ESSAY_PROMPTS } from './essayBank.js'
 
-export default function Resume() {
+export default function Resume({ initialCompany = '', initialJob = '' }) {
   const [mode, setMode] = useState('draft') // draft | review | mine
   return (
     <>
@@ -16,15 +16,15 @@ export default function Resume() {
           <button className={`tab ${mode === 'mine' ? 'active' : ''}`} onClick={() => setMode('mine')}>📁 내 자소서</button>
         </div>
       </div>
-      {mode === 'draft' && <Draft />}
+      {mode === 'draft' && <Draft initialCompany={initialCompany} initialJob={initialJob} />}
       {mode === 'review' && <Review />}
       {mode === 'mine' && <MyEssays />}
     </>
   )
 }
 
-function Draft() {
-  const [f, setF] = useState({ company: '', job_title: '', question: '', experience: '', strengths: '' })
+function Draft({ initialCompany = '', initialJob = '' }) {
+  const [f, setF] = useState({ company: initialCompany, job_title: initialJob, question: '', experience: '', strengths: '' })
   const [picked, setPicked] = useState('')
   const [tip, setTip] = useState('')
   const [out, setOut] = useState('')
