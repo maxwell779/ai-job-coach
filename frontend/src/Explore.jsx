@@ -3,7 +3,7 @@ import { getCompany, getBrief, getRoleBrief, getNews } from './api.js'
 import { MD, Loading, ErrorBox, fmtKRW } from './ui.jsx'
 import { ROLE_QUESTIONS } from './questionBank.js'
 import { JOB_GROUPS, INDUSTRIES, ALL_JOBS } from './jobTaxonomy.js'
-import { findDivisions, COMPANY_NAMES } from './companyDivisions.js'
+import { findDivisions, COMPANY_NAMES, findOrgProfile } from './companyDivisions.js'
 
 const GROUPS = Object.keys(JOB_GROUPS)
 
@@ -65,6 +65,7 @@ export default function Explore({ goTo, onContext }) {
 
   const ov = data?.overview, fin = data?.financials
   const divInfo = ov && !ov.error ? findDivisions(ov.corp_name) : null
+  const orgProfile = ov && !ov.error ? findOrgProfile(ov.corp_name) : null
   const ready = data || brief || roleBrief || news.length
 
   return (
@@ -111,6 +112,13 @@ export default function Explore({ goTo, onContext }) {
             <Item k="대표자" v={ov.ceo} /><Item k="설립일" v={ov.established} /><Item k="종목코드" v={ov.stock_code || '비상장'} />
             <Item k="결산월" v={ov.settlement_month} /><Item k="주소" v={ov.address} />
           </div>
+          {orgProfile && (
+            <div style={{ marginTop: 14, padding: '12px 14px', background: '#f0f4ff', borderRadius: 10 }}>
+              <div style={{ fontSize: 13.5 }}><b>🎯 인재상</b> · {orgProfile.talent}</div>
+              <div style={{ fontSize: 13.5, marginTop: 5 }}><b>🏢 핵심사업</b> · {orgProfile.biz}</div>
+              <div className="hint" style={{ marginTop: 5 }}>※ 공기업 면접 빈출 — 지원동기·직무를 인재상/핵심사업과 연결해 준비하세요. (공식 채용페이지 확인 권장)</div>
+            </div>
+          )}
           {divInfo && (
             <div style={{ marginTop: 14 }}>
               <div className="hint" style={{ fontWeight: 700, color: 'var(--text)' }}>🏭 사업부문 / 채용직군 선택(부문별 맞춤 분석)</div>

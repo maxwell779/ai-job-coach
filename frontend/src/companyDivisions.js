@@ -41,6 +41,31 @@ export const COMPANY_DIVISIONS = {
 
 export const COMPANY_NAMES = Object.keys(COMPANY_DIVISIONS)
 
+// 공기업 인재상·핵심사업(면접 대비용 · 공식 채용페이지 확인 권장)
+export const ORG_PROFILE = {
+  '한국전력공사': { talent: '기업가형·통섭형·도전적·가치창조형 인재', biz: '전력 생산·송배전·판매, 에너지신사업(신재생·해외사업)' },
+  '한국수력원자력': { talent: '안전 최우선·전문성·청렴·소통', biz: '원자력·수력 발전, 무탄소 에너지(SMR·수소)' },
+  '한국가스공사': { talent: '도전·책임·신뢰·전문성', biz: '천연가스(LNG) 도입·저장·공급, 수소사업' },
+  '한국토지주택공사': { talent: '정직·열정·소통(국민 주거안정)', biz: '토지·주택 공급, 도시·신도시 개발, 주거복지' },
+  'LH': { talent: '정직·열정·소통(국민 주거안정)', biz: '토지·주택 공급, 도시·신도시 개발, 주거복지' },
+  '한국도로공사': { talent: '안전·신뢰·도전·소통', biz: '고속도로 건설·관리·운영, 스마트도로' },
+  '한국철도공사': { talent: '사람중심·안전우선·미래창조', biz: '철도 여객·물류 운송, 역세권 개발' },
+  '코레일': { talent: '사람중심·안전우선·미래창조', biz: '철도 여객·물류 운송, 역세권 개발' },
+  '국민건강보험공단': { talent: '국민·청렴·전문·혁신', biz: '건강보험·장기요양보험 운영, 보험료 부과·급여' },
+  '국민연금공단': { talent: '신뢰·전문·책임·소통', biz: '국민연금 가입·급여·기금운용' },
+  '인천국제공항공사': { talent: '도전·존중·협력·전문', biz: '인천공항 건설·운영, 글로벌 공항사업' },
+  '한국공항공사': { talent: '안전·고객·혁신·소통', biz: '전국 14개 공항 운영·관리' },
+  '한국수자원공사': { talent: '물 전문가·혁신·신뢰·포용', biz: '수자원 개발·관리, 수도·댐, 물에너지' },
+  '한국산업인력공단': { talent: '전문성·공정·혁신·소통', biz: '국가자격시험·직업능력개발·외국인고용·해외취업' },
+}
+
+export function findOrgProfile(corpName) {
+  if (!corpName) return null
+  const n = corpName.replace(/\(주\)|주식회사|\s/g, '')
+  for (const key of Object.keys(ORG_PROFILE)) if (n.includes(key.replace(/\s/g, ''))) return { key, ...ORG_PROFILE[key] }
+  return null
+}
+
 export function findDivisions(corpName) {
   if (!corpName) return null
   const n = corpName.replace(/\(주\)|주식회사|\s/g, '')

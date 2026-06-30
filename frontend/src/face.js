@@ -87,12 +87,26 @@ export async function runFaceAnalysis(videoEl, onFace) {
       let blinks = 0
       for (let i = 1; i < blink.length; i++) if (blink[i] >= 0.5 && blink[i - 1] < 0.5) blinks++
       const headMove = (std(noseX) + std(noseY)) * 100 // % 단위 움직임
+      // 시선 고정률: 정면 응시(낮은 gaze) 프레임 비율
+      const gazeFix = gaze.length ? gaze.filter((g) => g < 0.18).length / gaze.length : 0
+      // 고개 끄덕임: 코끝 y의 상하 반전 횟수(진폭 임계)
+      let nods = 0, lastDir = 0, lastExt = noseY.length ? noseY[0] : 0
+      for (let i = 1; i < noseY.length; i++) {
+        const d = noseY[i] - noseY[i - 1]
+        const dir = d > 0 ? 1 : d < 0 ? -1 : 0
+        if (dir && dir !== lastDir) {
+          if (Math.abs(noseY[i - 1] - lastExt) > 0.012) nods++
+          lastExt = noseY[i - 1]; lastDir = dir
+        }
+      }
       return {
         samples: faces,
         faceRatio: Math.round(faceRatio * 100),
         gazeAway: Math.round(mean(gaze) * 100),     // 클수록 정면에서 벗어남
+        gazeFix: Math.round(gazeFix * 100),         // 정면 응시 비율
         smile: Math.round(mean(smile) * 100),
         blinks,
+        nods: Math.round(nods / 2),                 // 끄덕임 추정 횟수
         browDown: Math.round(mean(browDown) * 100),
         headMove: Math.round(headMove * 10) / 10,
       }
@@ -130,7 +144,21 @@ export function analyzeFace(m) {
   if (bpm > 35) { dims.push(dim('긴장', 'warn', `깜빡임 잦음`, '눈 깜빡임이 잦아요(긴장 신호). 천천히 호흡해보세요.')); bad += 1 }
   else dims.push(dim('긴장', 'good', '침착함', '눈 깜빡임이 안정적이에요.'))
 
-  const score = Math.max(0, 100 - bad * 18)
+  // 5) 시선 고정률(정면 응시 유지)
+  if (m.gazeFix != null) {
+    if (m.gazeFix >= 65) dims.push(dim('시선 고정', 'good', `${m.gazeFix}%`, '정면 응시를 잘 유지했어요.'))
+    else if (m.gazeFix >= 45) dims.push(dim('시선 고정', 'warn', `${m.gazeFix}%`, '응시 유지가 들쭉날쭉해요. 카메라에 시선을 고정해보세요.'))
+    else { dims.push(dim('시선 고정', 'bad', `${m.gazeFix}%`, '정면 응시 시간이 짧아요. 핵심 답변엔 카메라를 보세요.')); bad += 1 }
+  }
+
+  // 6) 고개 끄덕임(호응) — 적절하면 경청/소통 인상
+  if (m.nods != null) {
+    if (m.nods === 0) dims.push(dim('호응(끄덕임)', 'warn', '거의 없음', '고개 끄덕임이 거의 없어 경직돼 보일 수 있어요. 가벼운 호응이 좋아요.'))
+    else if (m.nods <= 12) dims.push(dim('호응(끄덕임)', 'good', `${m.nods}회`, '적절한 호응으로 소통감이 좋아요.'))
+    else { dims.push(dim('호응(끄덕임)', 'warn', `${m.nods}회 많음`, '움직임이 다소 많아요. 차분하게 줄여보세요.')); bad += 1 }
+  }
+
+  const score = Math.max(0, 100 - bad * 15)
   const label = score >= 75 ? '아주 좋음' : score >= 50 ? '보통' : '개선 필요'
   return { ok: true, dims, score, label, faceRatio: m.faceRatio }
 }
