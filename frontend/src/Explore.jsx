@@ -3,7 +3,7 @@ import { getCompany, getBrief, getRoleBrief, getNews } from './api.js'
 import { MD, Loading, ErrorBox, fmtKRW } from './ui.jsx'
 import { ROLE_QUESTIONS } from './questionBank.js'
 import { JOB_GROUPS, INDUSTRIES, ALL_JOBS } from './jobTaxonomy.js'
-import { findDivisions } from './companyDivisions.js'
+import { findDivisions, COMPANY_NAMES } from './companyDivisions.js'
 
 const GROUPS = Object.keys(JOB_GROUPS)
 
@@ -73,7 +73,10 @@ export default function Explore({ goTo, onContext }) {
         <p className="desc" style={{ marginBottom: 12 }}>회사·산업군·직무를 한 번에 넣으면 <b>기업 분석 + 직무 인사이트 + 뉴스</b>를 통합해 보여줘요. 같은 직무도 산업/회사 맥락 반영.</p>
         <form onSubmit={analyze}>
           <div className="row">
-            <div><label>지원 회사 (선택)</label><input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="삼성전자" /></div>
+            <div><label>지원 회사 (대기업·공기업 자동완성)</label>
+              <input list="complist" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="삼성전자 / 한국전력공사 …" />
+              <datalist id="complist">{COMPANY_NAMES.map((n) => <option key={n} value={n} />)}</datalist>
+            </div>
             <div><label>산업군 (선택)</label>
               <select value={industry} onChange={(e) => setIndustry(e.target.value)}>
                 <option value="">전체 산업</option>{INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
@@ -110,7 +113,7 @@ export default function Explore({ goTo, onContext }) {
           </div>
           {divInfo && (
             <div style={{ marginTop: 14 }}>
-              <div className="hint" style={{ fontWeight: 700, color: 'var(--text)' }}>🏭 사업부문 선택(부문별 맞춤 분석)</div>
+              <div className="hint" style={{ fontWeight: 700, color: 'var(--text)' }}>🏭 사업부문 / 채용직군 선택(부문별 맞춤 분석)</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                 {divInfo.divisions.map((d) => (
                   <button key={d} className={`tab ${division === d ? 'active' : ''}`} style={{ fontSize: 12.5 }} onClick={() => pickDivision(d)}>{d}</button>
