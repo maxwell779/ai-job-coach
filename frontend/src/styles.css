@@ -243,3 +243,5 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
 .btn.dark { background: linear-gradient(135deg,#1f2937,#374151); box-shadow: 0 2px 8px rgba(31,41,55,.25); }
 .btn.rec { background: linear-gradient(135deg,#f04452,#dc2626); box-shadow: 0 2px 8px rgba(240,68,82,.35); }
 .btn.ok { background: linear-gradient(135deg,#16a34a,#0ea5e9); }
+.upload-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--brand-weak); color: var(--brand); font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 10px; cursor: pointer; }
+.upload-btn:hover { background: #fff; box-shadow: var(--shadow); }

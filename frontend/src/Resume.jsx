@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { draftResume, reviewResume } from './api.js'
+import { draftResume, reviewResume, extractText } from './api.js'
 import { MD, Loading, ErrorBox } from './ui.jsx'
 import { useCollection, add, remove, materialDocs } from './store.js'
 import { ESSAY_PROMPTS } from './essayBank.js'
@@ -120,17 +120,29 @@ function Review() {
   const [out, setOut] = useState('')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
+  const [uploading, setUploading] = useState(false)
   async function go() {
     if (text.trim().length < 30) { setErr('첨삭할 자소서를 30자 이상 입력하세요.'); return }
     setLoading(true); setErr(''); setOut('')
     try { setOut((await reviewResume({ text, job_title: job })).review) } catch (e) { setErr(e.message) }
     setLoading(false)
   }
+  async function onFile(e) {
+    const f = e.target.files?.[0]; if (!f) return
+    setUploading(true); setErr('')
+    try { setText((await extractText(f)).text) } catch (e) { setErr(e.message) }
+    setUploading(false); e.target.value = ''
+  }
   return (
     <div className="card">
       <label>지원 직무 (선택)</label>
       <input value={job} onChange={(e) => setJob(e.target.value)} placeholder="데이터 분석가" />
-      <label>첨삭받을 자소서 본문 *</label>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>첨삭받을 자소서 본문 *
+        <span className="upload-btn">📎 파일 올리기(PDF·TXT)
+          <input type="file" accept=".pdf,.txt,.md" onChange={onFile} style={{ display: 'none' }} />
+        </span>
+        {uploading && <span className="hint">추출 중…</span>}
+      </label>
       <textarea value={text} onChange={(e) => setText(e.target.value)} style={{ minHeight: 180 }} placeholder="작성한 자소서를 붙여넣으세요." />
       <div className="hint" style={{ marginTop: 6 }}>{text.replace(/\s/g, '').length}자 (공백제외)</div>
       <div style={{ marginTop: 14 }}><button className="btn" onClick={go} disabled={loading}>{loading ? '첨삭 중…' : '첨삭 받기'}</button></div>

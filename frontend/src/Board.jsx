@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useCollection, add, update, remove, materialDocs } from './store.js'
-import { ragSearch } from './api.js'
+import { ragSearch, extractText } from './api.js'
 import { Loading } from './ui.jsx'
 
 const SECTIONS = [
@@ -343,7 +343,15 @@ function Docs() {
   const docs = useCollection('resumes')
   useCollection('experiences'); useCollection('specs') // 검색 대상 변화 구독
   const [f, setF] = useState({ title: '', content: '' })
+  const [uploading, setUploading] = useState(false)
   function save() { if (!f.content.trim()) return; add('resumes', { title: f.title || '제목없음', content: f.content }); setF({ title: '', content: '' }) }
+  async function onFile(e) {
+    const file = e.target.files?.[0]; if (!file) return
+    setUploading(true)
+    try { const r = await extractText(file); add('resumes', { title: file.name.replace(/\.[^.]+$/, ''), content: r.text }) }
+    catch (err) { alert('업로드 실패: ' + err.message) }
+    setUploading(false); e.target.value = ''
+  }
   return (
     <>
       <RagSearch />
@@ -352,7 +360,13 @@ function Docs() {
         <p className="desc">자소서 초안·메모를 저장해두세요. (자소서 탭에서 "자료실에 저장"으로도 추가됩니다)</p>
         <label>제목</label><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="카카오 자소서 - 지원동기" />
         <label>내용</label><textarea value={f.content} onChange={(e) => setF({ ...f, content: e.target.value })} style={{ minHeight: 120 }} />
-        <div style={{ marginTop: 14 }}><button className="btn" onClick={save}>+ 저장</button></div>
+        <div style={{ marginTop: 14, display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button className="btn" onClick={save}>+ 저장</button>
+          <span className="upload-btn">📎 파일 업로드(PDF·TXT)
+            <input type="file" accept=".pdf,.txt,.md" onChange={onFile} style={{ display: 'none' }} />
+          </span>
+          {uploading && <span className="hint">추출·저장 중…</span>}
+        </div>
       </div>
       <div className="card">
         <h2>저장된 자료 ({docs.length})</h2>

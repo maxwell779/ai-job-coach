@@ -63,4 +63,9 @@ export const getNews = (query, display = 8) =>
 export const getRoleBrief = (role) =>
   fetch('/api/role_brief', { method: 'POST', headers: J, body: JSON.stringify({ role }) }).then(handle)
 
+export const extractText = (file) => {
+  const fd = new FormData(); fd.append('file', file)
+  return fetch('/api/extract_text', { method: 'POST', body: fd }).then(handle)
+}
+
 export const health = () => fetch('/api/health').then(handle)

@@ -13,7 +13,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI
+import io
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
@@ -281,6 +282,33 @@ class RagIn(BaseModel):
 @app.post("/api/rag/search")
 def rag_search(body: RagIn):
     return {"results": rag.rank(body.query, body.docs, top_k=body.top_k)}
+
+
+# ── 파일 업로드 → 텍스트 추출(자소서·이력서 PDF/TXT) ──
+@app.post("/api/extract_text")
+async def extract_text(file: UploadFile = File(...)):
+    name = (file.filename or "").lower()
+    raw = await file.read()
+    if len(raw) > 8 * 1024 * 1024:
+        return JSONResponse({"error": "8MB 이하 파일만 가능합니다."}, status_code=400)
+    try:
+        if name.endswith(".pdf"):
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(raw))
+            text = "\n".join((p.extract_text() or "") for p in reader.pages)
+        elif name.endswith((".txt", ".md", ".csv")):
+            try:
+                text = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                text = raw.decode("cp949", errors="ignore")
+        else:
+            return JSONResponse({"error": "PDF 또는 TXT 파일만 지원합니다(.docx는 텍스트로 변환 후 올려주세요)."}, status_code=400)
+        text = (text or "").strip()
+        if not text:
+            return JSONResponse({"error": "텍스트를 추출하지 못했습니다(이미지 PDF일 수 있어요)."}, status_code=400)
+        return {"text": text[:20000], "chars": len(text), "filename": file.filename}
+    except Exception as e:
+        return JSONResponse({"error": f"파일 처리 실패: {e}"}, status_code=400)
 
 
 # ── 정적 프론트(빌드 결과) ──
