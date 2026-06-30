@@ -174,6 +174,25 @@ def generate_followup(question: str, answer: str, job_title: str = "", persona: 
     return {"followup": agent.quick_complete(prompt).strip().strip('"')}
 
 
+def followup_chain(question: str, answer: str, job_title: str = "", persona: str = "압박", n: int = 3) -> dict:
+    """압박 라운드 — 하나의 답변에 대해 강도를 점점 높이는 연속 꼬리질문 n개."""
+    if not (answer or "").strip():
+        return {"questions": []}
+    n = max(2, min(5, int(n)))
+    prompt = f"""당신은 압박 면접관입니다. 페르소나: {_persona_line(persona)}
+지원자의 답변을 듣고, 실제 압박 면접처럼 **강도를 점점 높여 연속으로 던질 꼬리질문 {n}개**를 만드세요.
+
+[직무] {job_title or '(미지정)'}
+[질문] {question}
+[지원자 답변] {answer}
+
+규칙:
+- 1번은 가벼운 확인, 뒤로 갈수록 근거·모순·가정·최악의 상황을 파고드는 강한 질문으로.
+- 답변의 약점(추상성·근거부족·본인기여 불명확)을 정조준.
+- 반드시 JSON 배열로만: ["질문1", "질문2", ...]"""
+    return {"questions": _parse_list(agent.quick_complete(prompt).strip(), n)}
+
+
 def session_report(qa_list, job_title: str = "") -> dict:
     """면접 세션 전체(여러 질문-답변)를 종합 평가한 리포트를 생성한다."""
     items = [x for x in (qa_list or []) if (x.get("answer") or "").strip()]

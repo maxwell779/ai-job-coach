@@ -39,6 +39,9 @@ export const evalAnswer = (body) =>
 export const followup = (body) =>
   fetch('/api/interview/followup', { method: 'POST', headers: J, body: JSON.stringify(body) }).then(handle)
 
+export const followupChain = (body) =>
+  fetch('/api/interview/followup_chain', { method: 'POST', headers: J, body: JSON.stringify(body) }).then(handle)
+
 export const questionsFromMaterials = (body) =>
   fetch('/api/interview/from_materials', { method: 'POST', headers: J, body: JSON.stringify(body) }).then(handle)
 

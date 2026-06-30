@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { genQuestions, evalAnswer, followup, questionsFromMaterials, sessionReport, modelAnswer, starCoach } from './api.js'
+import { genQuestions, evalAnswer, followup, followupChain, questionsFromMaterials, sessionReport, modelAnswer, starCoach } from './api.js'
 import { MD, Loading, ErrorBox } from './ui.jsx'
 import { startRecorder, analyzeDelivery } from './voice.js'
 import { startCamera, runFaceAnalysis, analyzeFace } from './face.js'
@@ -165,6 +165,20 @@ function QuizRunner({ questions, job, cfg }) {
     } catch (e) { setReport('리포트 생성 실패: ' + e.message) }
     setReporting(false)
   }
+  function exportPdf() {
+    const esc = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    const qa = log.map((x, i) => `<div class="qa"><b>Q${i + 1}. ${esc(x.question)}</b><div>${esc(x.answer)}</div>${x.delivery ? `<div class="m">음성 긴장도 ${x.delivery.tensionScore}/100 · 말속도 ${x.delivery.charsPerSec}자/초</div>` : ''}</div>`).join('')
+    const html = `<!doctype html><html lang=ko><head><meta charset=utf-8><title>모의면접 리포트 - ${esc(job)}</title>
+    <style>body{font-family:-apple-system,'Malgun Gothic',sans-serif;max-width:760px;margin:30px auto;padding:0 20px;color:#1a1d24;line-height:1.7}
+    h1{font-size:22px}h3{color:#5b5bf0;margin-top:20px}pre{white-space:pre-wrap;font:inherit;background:#f7f8fb;padding:14px;border-radius:8px}
+    .qa{border-top:1px solid #eee;padding:10px 0}.m{color:#6b7280;font-size:13px;margin-top:4px}.foot{color:#9ca3af;font-size:12px;margin-top:24px}</style></head>
+    <body><h1>🎤 AI 모의면접 성장 리포트</h1><div>직무: <b>${esc(job)}</b> · 문항 ${log.length}개 · ${new Date().toISOString().slice(0, 10)}</div>
+    <h3>종합 평가</h3><pre>${esc(report)}</pre><h3>질문·답변 기록</h3>${qa}
+    <div class="foot">AI 취업 코치 · 공개 데이터 기반 · 본 리포트는 연습 참고용입니다.</div>
+    <script>window.onload=()=>setTimeout(()=>window.print(),400)</script></body></html>`
+    const w = window.open('', '_blank')
+    if (w) { w.document.write(html); w.document.close() }
+  }
   return (
     <>
       <QuestionCard key={idx} n={idx + 1} total={questions.length} question={questions[idx]} job={job} cfg={cfg} onRecord={record}
@@ -177,6 +191,7 @@ function QuizRunner({ questions, job, cfg }) {
           </div>
           {reporting && <Loading text="전체 답변을 종합 평가하는 중…" />}
           {report && <div style={{ marginTop: 14 }}><MD>{report}</MD></div>}
+          {report && <button className="btn ghost sm" onClick={exportPdf} style={{ marginTop: 10 }}>📄 PDF로 저장(인쇄)</button>}
           {savedScore && <div className="hint" style={{ marginTop: 8 }}>✓ 점수가 홈 대시보드 '점수 추이'에 저장됐어요.</div>}
         </div>
       )}
@@ -196,8 +211,8 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
   const [faceRes, setFaceRes] = useState(null)
   const [gazeOff, setGazeOff] = useState(false)
   const [camLoading, setCamLoading] = useState(false)
-  const [fup, setFup] = useState(''); const [model, setModel] = useState(''); const [tri, setTri] = useState(null); const [star, setStar] = useState('')
-  const [loading, setLoading] = useState(false); const [fuping, setFuping] = useState(false); const [modeling, setModeling] = useState(false); const [starring, setStarring] = useState(false)
+  const [fup, setFup] = useState(''); const [model, setModel] = useState(''); const [tri, setTri] = useState(null); const [star, setStar] = useState(''); const [chain, setChain] = useState([])
+  const [loading, setLoading] = useState(false); const [fuping, setFuping] = useState(false); const [modeling, setModeling] = useState(false); const [starring, setStarring] = useState(false); const [chaining, setChaining] = useState(false)
   const [err, setErr] = useState(''); const [saved, setSaved] = useState(false)
   const recogRef = useRef(null), recorderRef = useRef(null), faceRef = useRef(null), videoRef = useRef(null), camRef = useRef(null)
   const baseRef = useRef(''), answerRef = useRef(''), timerRef = useRef(null)
@@ -284,6 +299,7 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
   async function getFollowup() { setFuping(true); setFup(''); try { setFup((await followup({ question: q, answer, job_title: job, persona })).followup) } catch (e) { setErr(e.message) } setFuping(false) }
   async function getModel() { setModeling(true); setModel(''); try { setModel((await modelAnswer({ question: q, answer, job_title: job })).model_answer) } catch (e) { setErr(e.message) } setModeling(false) }
   async function getStar() { if (!answer.trim()) { setErr('답변을 입력하세요.'); return } setStarring(true); setStar(''); try { setStar((await starCoach({ question: q, answer, job_title: job })).star) } catch (e) { setErr(e.message) } setStarring(false) }
+  async function getChain() { if (!answer.trim()) { setErr('답변을 입력하세요.'); return } setChaining(true); setChain([]); try { setChain((await followupChain({ question: q, answer, job_title: job, persona })).questions || []) } catch (e) { setErr(e.message) } setChaining(false) }
   function practiceFollowup() { setQ(fup); setFup(''); setAnswer(''); setFeedback(''); setDelivery(null); setFaceRes(null); setModel('') }
   function saveExperience() { add('experiences', { title: q.slice(0, 40), result: answer, fromInterview: true, tags: [job] }); setSaved(true) }
 
@@ -322,6 +338,7 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
       <div className="row" style={{ marginTop: 14 }}>
         <button className="btn" onClick={submit} disabled={loading} style={{ flex: '0 0 auto' }}>{loading ? '평가 중…' : '✅ 답변 평가'}</button>
         {feedback && <button className="btn ghost sm" onClick={getFollowup} disabled={fuping} style={{ flex: '0 0 auto' }}>{fuping ? '…' : '🔎 꼬리질문'}</button>}
+        <button className="btn ghost sm" onClick={getChain} disabled={chaining} style={{ flex: '0 0 auto' }}>{chaining ? '…' : '🔥 압박 라운드'}</button>
         <button className="btn ghost sm" onClick={getStar} disabled={starring} style={{ flex: '0 0 auto' }}>{starring ? '…' : '📋 STAR 분석'}</button>
         <button className="btn ghost sm" onClick={getModel} disabled={modeling} style={{ flex: '0 0 auto' }}>{modeling ? '…' : '🌟 모범답안'}</button>
         {answer.trim() && <button className="btn ghost sm" onClick={saveExperience} disabled={saved} style={{ flex: '0 0 auto' }}>{saved ? '저장됨' : '💼 경험 저장'}</button>}
@@ -338,6 +355,20 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
         <div className="qcard" style={{ marginTop: 14, background: '#fff7ed' }}>
           <div style={{ fontWeight: 700, marginBottom: 6 }}>🔎 꼬리질문</div>{fup}
           <div style={{ marginTop: 10 }}><button className="btn ghost sm" onClick={practiceFollowup}>이 질문으로 이어서 답하기 →</button></div>
+        </div>
+      )}
+      {chaining && <Loading text="압박 꼬리질문을 만드는 중…" />}
+      {chain.length > 0 && (
+        <div className="card" style={{ marginTop: 14, background: '#fff5f5' }}>
+          <h2 style={{ fontSize: 15 }}>🔥 압박 라운드 — 연속 꼬리질문</h2>
+          <p className="hint">강도가 점점 올라가요. 각 질문에 다시 답해보며 실전 압박을 연습하세요.</p>
+          {chain.map((cq, i) => (
+            <div className="list-item" key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <span className="tag" style={{ background: '#ffe1e1', color: 'var(--up)' }}>{i + 1}</span>
+              <div style={{ flex: 1, fontSize: 14 }}>{cq}</div>
+              <button className="btn ghost sm" onClick={() => { setQ(cq); setChain([]); setAnswer(''); setFeedback(''); setDelivery(null); setFaceRes(null); setStar(''); setModel(''); setTri(null) }} style={{ flex: '0 0 auto' }}>답하기 →</button>
+            </div>
+          ))}
         </div>
       )}
       {starring && <Loading text="STAR 구조를 분석하는 중…" />}

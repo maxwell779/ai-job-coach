@@ -23,9 +23,11 @@ function autoCorrelate(buf, sampleRate) {
   while (d < m - 1 && c[d] > c[d + 1]) d++
   let maxv = -1, maxp = -1
   for (let i = d; i < m; i++) if (c[i] > maxv) { maxv = c[i]; maxp = i }
-  if (maxp <= 0) return -1
+  if (maxp <= 0) return { freq: -1, clarity: 0 }
   const freq = sampleRate / maxp
-  return freq > 70 && freq < 500 ? freq : -1
+  // clarity ≈ 정규화 자기상관 피크(주기성/HNR 근사, 0~1)
+  const clarity = c[0] ? maxv / c[0] : 0
+  return { freq: freq > 70 && freq < 500 ? freq : -1, clarity }
 }
 
 // onLevel(level 0~1): 실시간 음량 콜백(UI 미터용)
@@ -39,6 +41,7 @@ export async function startRecorder(onLevel) {
   const buf = new Float32Array(analyser.fftSize)
   const vols = []
   const pitches = []
+  const clarities = []
   const t0 = performance.now()
   let raf = null
 
@@ -48,8 +51,8 @@ export async function startRecorder(onLevel) {
     for (let i = 0; i < buf.length; i++) rms += buf[i] * buf[i]
     rms = Math.sqrt(rms / buf.length)
     vols.push(rms)
-    const f = autoCorrelate(buf, ctx.sampleRate)
-    if (f > 0) pitches.push(f)
+    const { freq, clarity } = autoCorrelate(buf, ctx.sampleRate)
+    if (freq > 0) { pitches.push(freq); clarities.push(clarity) }
     if (onLevel) onLevel(Math.min(1, rms * 8)) // 시각화용 스케일
     raf = requestAnimationFrame(tick)
   }
@@ -61,7 +64,7 @@ export async function startRecorder(onLevel) {
       const durationSec = (performance.now() - t0) / 1000
       try { stream.getTracks().forEach((t) => t.stop()) } catch {}
       try { ctx.close() } catch {}
-      return computeMetrics(vols, pitches, durationSec)
+      return computeMetrics(vols, pitches, durationSec, clarities)
     },
   }
 }
@@ -75,7 +78,7 @@ function localVar(a) {
   s /= (a.length - 1); const m = mean(a); return m ? s / m : 0
 }
 
-function computeMetrics(vols, pitches, durationSec) {
+function computeMetrics(vols, pitches, durationSec, clarities = []) {
   const fps = vols.length / Math.max(durationSec, 0.1)
   const voiced = vols.filter((v) => v >= SILENCE_RMS)
   const speakingRatio = vols.length ? voiced.length / vols.length : 0
@@ -106,6 +109,7 @@ function computeMetrics(vols, pitches, durationSec) {
     pitchCV: Math.round(pitchCV * 100) / 100,
     jitter: Math.round(jitter * 1000) / 1000,
     shimmer: Math.round(shimmer * 1000) / 1000,
+    hnr: Math.round(mean(clarities) * 100), // 음성 명료도(HNR 근사) 0~100
     endRatio: Math.round(endRatio * 100) / 100,
   }
 }
@@ -192,6 +196,13 @@ export function analyzeDelivery(metrics, transcript = '') {
     dims.push(dim('억양', 'good', '생동감 있음', '적절한 억양으로 생동감 있게 들려요.'))
   } else if (metrics.pitchMean > 0) {
     dims.push(dim('억양', 'good', '풍부함', '억양 변화가 있어요.'))
+  }
+
+  // 7-b) 음성 명료도(HNR 근사) — 또렷함/맑음
+  if (metrics.hnr != null && metrics.pitchMean > 0) {
+    if (metrics.hnr >= 55) dims.push(dim('음성 명료도', 'good', '또렷함', '목소리가 또렷하고 맑게 전달돼요.'))
+    else if (metrics.hnr >= 38) dims.push(dim('음성 명료도', 'warn', '보통', '발음을 또박또박하면 더 또렷하게 들려요.'))
+    else { dims.push(dim('음성 명료도', 'bad', '웅얼거림', '목소리가 다소 웅얼거려요. 입을 크게 벌려 또박또박 발음해보세요.')); tension += 6 }
   }
 
   // 8) 발화 에너지 — 평균 성량(자신감의 객관 지표, 보조)

@@ -240,6 +240,11 @@ def interview_followup(body: FollowupIn):
     return interview.generate_followup(body.question, body.answer, body.job_title, persona=body.persona)
 
 
+@app.post("/api/interview/followup_chain")
+def interview_followup_chain(body: FollowupIn):
+    return interview.followup_chain(body.question, body.answer, body.job_title, persona=body.persona)
+
+
 @app.post("/api/interview/from_materials")
 def interview_from_materials(body: MaterialsQIn):
     return interview.questions_from_materials(body.materials, body.job_title, body.count)
