@@ -18,7 +18,7 @@ const TABS = [
 export default function App() {
   const [tab, setTab] = useState('home')
   const [ctx, setCtx] = useState({ company: '', role: '' })
-  const active = TABS.find((t) => t.id === tab)
+  const active = TABS.find((t) => t.id === tab) || TABS[0]
   function goTo(tabId, patch) { if (patch) setCtx((c) => ({ ...c, ...patch })); setTab(tabId) }
   return (
     <div className="layout">

@@ -89,7 +89,7 @@ export default function Home({ onNav }) {
   ]
 
   const ACTIONS = [
-    { icon: '🏢', label: '기업 분석', go: 'company' },
+    { icon: '🏢', label: '기업·직무 분석', go: 'explore' },
     { icon: '📝', label: '자소서 작성', go: 'resume' },
     { icon: '🎤', label: '모의 면접', go: 'interview' },
     { icon: '🔎', label: '공고 검색', go: 'jobs' },

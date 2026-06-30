@@ -45,6 +45,7 @@ export async function startCamera(videoEl) {
 export async function runFaceAnalysis(videoEl, onFace) {
   const lm = await getLandmarker()
   const gaze = [], smile = [], blink = [], browDown = [], noseX = [], noseY = []
+  const frown = [], eyeWide = [], jaw = []
   let faces = 0, frames = 0
   let raf = null, lastTs = -1
 
@@ -68,6 +69,9 @@ export async function runFaceAnalysis(videoEl, onFace) {
           smile.push(((b.mouthSmileLeft || 0) + (b.mouthSmileRight || 0)) / 2)
           blink.push(((b.eyeBlinkLeft || 0) + (b.eyeBlinkRight || 0)) / 2)
           browDown.push(((b.browDownLeft || 0) + (b.browDownRight || 0)) / 2)
+          frown.push(((b.mouthFrownLeft || 0) + (b.mouthFrownRight || 0)) / 2)
+          eyeWide.push(((b.eyeWideLeft || 0) + (b.eyeWideRight || 0)) / 2)
+          jaw.push(b.jawOpen || 0)
           const nose = res.faceLandmarks[0][1] // 코끝
           if (nose) { noseX.push(nose.x); noseY.push(nose.y) }
           if (onFace) onFace({ found: true, gaze: g })
@@ -99,6 +103,12 @@ export async function runFaceAnalysis(videoEl, onFace) {
           lastExt = noseY[i - 1]; lastDir = dir
         }
       }
+      // 감정 추정(FER 근사) — blendshape로 라벨 도출(별도 모델 없이 온디바이스)
+      const sm = mean(smile), neg = (mean(browDown) + mean(frown)) / 2, wide = mean(eyeWide)
+      let emotion = '중립'
+      if (sm > 0.12 && sm > neg) emotion = '밝음/긍정'
+      else if (neg > 0.18) emotion = '긴장/경직'
+      else if (wide > 0.35) emotion = '놀람/불안'
       return {
         samples: faces,
         faceRatio: Math.round(faceRatio * 100),
@@ -109,6 +119,7 @@ export async function runFaceAnalysis(videoEl, onFace) {
         nods: Math.round(nods / 2),                 // 끄덕임 추정 횟수
         browDown: Math.round(mean(browDown) * 100),
         headMove: Math.round(headMove * 10) / 10,
+        emotion,
       }
     },
   }
@@ -158,9 +169,19 @@ export function analyzeFace(m) {
     else { dims.push(dim('호응(끄덕임)', 'warn', `${m.nods}회 많음`, '움직임이 다소 많아요. 차분하게 줄여보세요.')); bad += 1 }
   }
 
+  // 7) 감정(표정 라벨)
+  if (m.emotion) {
+    const st = m.emotion === '밝음/긍정' ? 'good' : m.emotion === '중립' ? 'good' : 'warn'
+    const msg = m.emotion === '긴장/경직' ? '표정이 굳어 보여요. 미간을 펴고 입꼬리를 살짝 올려보세요.'
+      : m.emotion === '놀람/불안' ? '눈을 크게 뜬 긴장 표정이 보여요. 천천히 호흡하며 편안하게.'
+      : m.emotion === '밝음/긍정' ? '밝고 긍정적인 표정이에요. 좋습니다!' : '안정적인 표정이에요.'
+    dims.push(dim('표정(감정)', st, m.emotion, msg))
+    if (m.emotion === '긴장/경직' || m.emotion === '놀람/불안') bad += 1
+  }
+
   const score = Math.max(0, 100 - bad * 15)
   const label = score >= 75 ? '아주 좋음' : score >= 50 ? '보통' : '개선 필요'
-  return { ok: true, dims, score, label, faceRatio: m.faceRatio }
+  return { ok: true, dims, score, label, faceRatio: m.faceRatio, emotion: m.emotion }
 }
 
 function blinkPerMin(m) {

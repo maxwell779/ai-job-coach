@@ -9,12 +9,12 @@ function autoCorrelate(buf, sampleRate) {
   let rms = 0
   for (let i = 0; i < n; i++) rms += buf[i] * buf[i]
   rms = Math.sqrt(rms / n)
-  if (rms < SILENCE_RMS) return -1
+  if (rms < SILENCE_RMS) return { freq: -1, clarity: 0 }
   let r1 = 0, r2 = n - 1
   const thres = 0.2
   for (let i = 0; i < n / 2; i++) if (Math.abs(buf[i]) < thres) { r1 = i; break }
   for (let i = 1; i < n / 2; i++) if (Math.abs(buf[n - i]) < thres) { r2 = n - i; break }
-  if (r2 <= r1) return -1
+  if (r2 <= r1) return { freq: -1, clarity: 0 }
   const b = buf.slice(r1, r2)
   const m = b.length
   const c = new Array(m).fill(0)
