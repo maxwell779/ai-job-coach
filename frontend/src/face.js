@@ -70,8 +70,8 @@ export async function runFaceAnalysis(videoEl, onFace) {
           browDown.push(((b.browDownLeft || 0) + (b.browDownRight || 0)) / 2)
           const nose = res.faceLandmarks[0][1] // 코끝
           if (nose) { noseX.push(nose.x); noseY.push(nose.y) }
-          if (onFace) onFace(true)
-        } else if (onFace) onFace(false)
+          if (onFace) onFace({ found: true, gaze: g })
+        } else if (onFace) onFace({ found: false, gaze: 0 })
       }
     }
     raf = requestAnimationFrame(loop)

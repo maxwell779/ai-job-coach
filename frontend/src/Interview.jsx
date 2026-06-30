@@ -194,8 +194,9 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
   const [feedback, setFeedback] = useState('')
   const [delivery, setDelivery] = useState(null)
   const [faceRes, setFaceRes] = useState(null)
+  const [gazeOff, setGazeOff] = useState(false)
   const [camLoading, setCamLoading] = useState(false)
-  const [fup, setFup] = useState(''); const [model, setModel] = useState('')
+  const [fup, setFup] = useState(''); const [model, setModel] = useState(''); const [tri, setTri] = useState(null)
   const [loading, setLoading] = useState(false); const [fuping, setFuping] = useState(false); const [modeling, setModeling] = useState(false)
   const [err, setErr] = useState(''); const [saved, setSaved] = useState(false)
   const recogRef = useRef(null), recorderRef = useRef(null), faceRef = useRef(null), videoRef = useRef(null), camRef = useRef(null)
@@ -224,7 +225,7 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
     const fm = faceRef.current ? faceRef.current.stop() : null
     faceRef.current = null
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
-    setLevel(0)
+    setLevel(0); setGazeOff(false)
     if (!silent) {
       if (m) setDelivery(analyzeDelivery(m, answerRef.current))
       if (fm) setFaceRes(analyzeFace(fm))
@@ -245,7 +246,7 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
     catch { setErr('마이크 권한이 필요해요.'); return }
     if (cam && videoRef.current && camReady) {
       setCamLoading(true)
-      try { faceRef.current = await runFaceAnalysis(videoRef.current) }
+      try { faceRef.current = await runFaceAnalysis(videoRef.current, (info) => setGazeOff(info.found && info.gaze > 0.33)) }
       catch { setErr('표정 분석을 시작하지 못했어요.') }
       setCamLoading(false)
     }
@@ -267,9 +268,17 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
   async function submit() {
     if (!answer.trim()) { setErr('답변을 말하거나 입력하세요.'); return }
     if (rec) stopAll(false)
-    setLoading(true); setErr(''); setFeedback('')
-    try { const fb = (await evalAnswer({ question: q, answer, job_title: job, persona })).feedback; setFeedback(fb); onRecord?.({ question: q, answer, delivery }) }
-    catch (e) { setErr(e.message) }
+    setLoading(true); setErr(''); setFeedback(''); setTri(null)
+    try {
+      const fb = (await evalAnswer({ question: q, answer, job_title: job, persona })).feedback; setFeedback(fb)
+      // 3축 종합: 내용(직무적합)·커뮤니케이션(음성)·태도(표정)
+      const cm = fb.match(/([0-5])\s*점/)
+      const content = cm ? Number(cm[1]) * 20 : null
+      const comm = delivery ? Math.max(0, 100 - delivery.tensionScore) : null
+      const attitude = faceRes?.ok ? faceRes.score : null
+      if (content != null || comm != null || attitude != null) setTri({ content, comm, attitude })
+      onRecord?.({ question: q, answer, delivery })
+    } catch (e) { setErr(e.message) }
     setLoading(false)
   }
   async function getFollowup() { setFuping(true); setFup(''); try { setFup((await followup({ question: q, answer, job_title: job, persona })).followup) } catch (e) { setErr(e.message) } setFuping(false) }
@@ -286,8 +295,9 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
       <div className="qcard" style={{ marginTop: 8 }}>Q. {q}</div>
 
       {cam && (
-        <div style={{ marginTop: 14, textAlign: 'center' }}>
+        <div style={{ marginTop: 14, textAlign: 'center', position: 'relative' }}>
           <video ref={videoRef} muted playsInline autoPlay className="cam-view" />
+          {rec && gazeOff && <div className="gaze-alert">👀 시선이 벗어났어요 — 카메라를 보세요</div>}
           <div className="hint">{camLoading ? '얼굴 분석 모델 준비 중…' : camReady ? (rec ? '🔴 표정·시선 분석 중' : '📹 카메라 켜짐 — 답변을 시작하면 분석해요') : '카메라 준비 중…'}</div>
         </div>
       )}
@@ -320,6 +330,7 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
 
       {err && <div style={{ marginTop: 12 }}><ErrorBox>{err}</ErrorBox></div>}
       {loading && <Loading text="면접관이 답변을 평가하는 중…" />}
+      {tri && <TriCard tri={tri} />}
       {feedback && <div style={{ marginTop: 16 }}><MD>{feedback}</MD></div>}
       {fup && (
         <div className="qcard" style={{ marginTop: 14, background: '#fff7ed' }}>
@@ -332,6 +343,36 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
           <h2 style={{ fontSize: 15 }}>🌟 모범답안</h2><MD>{model}</MD>
         </div>
       )}
+    </div>
+  )
+}
+
+function TriCard({ tri }) {
+  const axes = [
+    { k: '직무적합도', v: tri.content, hint: '답변 내용' },
+    { k: '커뮤니케이션', v: tri.comm, hint: '음성 전달력' },
+    { k: '태도·인상', v: tri.attitude, hint: '표정·시선' },
+  ].filter((a) => a.v != null)
+  const avg = axes.length ? Math.round(axes.reduce((s, a) => s + a.v, 0) / axes.length) : null
+  const col = (v) => (v >= 70 ? 'var(--ok)' : v >= 45 ? 'var(--warn)' : 'var(--up)')
+  return (
+    <div className="card" style={{ marginTop: 14, background: '#f7f9ff' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0 }}>🧩 3축 종합 평가</h2>
+        {avg != null && <span style={{ fontWeight: 800, fontSize: 20, color: col(avg) }}>{avg}점</span>}
+        <span className="hint">내용·음성{tri.attitude != null ? '·표정' : ''} 통합</span>
+      </div>
+      <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
+        {axes.map((a) => (
+          <div key={a.k}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+              <b>{a.k} <span className="muted" style={{ fontWeight: 400 }}>· {a.hint}</span></b><span style={{ fontWeight: 800, color: col(a.v) }}>{a.v}</span>
+            </div>
+            <div style={{ height: 8, background: '#eef0f3', borderRadius: 99, marginTop: 4 }}><div style={{ width: `${a.v}%`, height: '100%', background: col(a.v), borderRadius: 99 }} /></div>
+          </div>
+        ))}
+      </div>
+      <div className="hint" style={{ marginTop: 8 }}>※ 음성·표정은 화상/녹음 시 측정됩니다. 내용은 AI 평가 점수 기반.</div>
     </div>
   )
 }
