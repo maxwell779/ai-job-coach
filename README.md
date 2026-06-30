@@ -14,7 +14,7 @@ license: mit
 > 지원할 회사를 **DART 전자공시**로 분석하고, **자소서를 AI가 첨삭**하고, **음성·표정으로 모의 면접**을 연습하고, 모든 준비를 한곳에서 관리하는 **풀스택 취업 올인원**.
 > *"공시로 회사를 읽고(DART), 내 경험으로 자소서를 쓰고(RAG), 목소리·표정으로 면접을 연습하는 — 무료·한국어·정직한 취업 코치"*
 
-🤗 **라이브 데모**: (HF Spaces 배포 예정) ｜ 💻 **코드**: https://github.com/maxwell779/ai-job-coach
+🤗 **라이브 데모**: **https://maxwell779-ai-job-coach.hf.space** ｜ 💻 **코드**: https://github.com/maxwell779/ai-job-coach
 
 **스택**: React(Vite) · FastAPI · LLM 멀티프로바이더(GitHub Models·Gemini, function-calling) · **RAG(임베딩·코사인)** · DART·네이버·고용24 OpenAPI · **MediaPipe**(표정·시선) · **Web Audio/Whisper**(음성) · Docker
 
@@ -81,8 +81,8 @@ cd frontend && npm install && npm run build   # → http://localhost:8000
 
 ## ☁️ 배포 (HF Spaces · Docker)
 
-`git push hf main` → Docker 자동 빌드(React→FastAPI, 포트 7860).
-> ⚠️ HF에선 `LLM_PROVIDER=gemini`(GitHub Models 도달 불가). Whisper는 로컬 전용(requirements 미포함 → 자동 비활성). 음성·표정 분석은 **Chrome + 마이크/카메라 허용** 필요.
+`git push hf main` → Docker 자동 빌드(React→FastAPI, 포트 7860). **라이브: https://maxwell779-ai-job-coach.hf.space**
+> ⚠️ HF에선 GitHub Models 도달 불가 → **`LLM_PROVIDER=groq`(무료·초고속)** 또는 `gemini` 사용. Whisper는 로컬 전용(requirements 미포함 → 자동 비활성). 음성·표정 분석은 **Chrome + 마이크/카메라 허용** 필요.
 
 ## ⚠️ 면책
 공개 데이터(DART·네이버·고용24) 기반 정보 제공·연습용. 음성/표정 분석은 휴리스틱 참고치이며, AI 생성물은 참고용입니다.
