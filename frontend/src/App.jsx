@@ -19,7 +19,9 @@ const TABS = [
 
 export default function App() {
   const [tab, setTab] = useState('home')
+  const [ctx, setCtx] = useState({ company: '', role: '' })
   const active = TABS.find((t) => t.id === tab)
+  function goTo(tabId, patch) { if (patch) setCtx((c) => ({ ...c, ...patch })); setTab(tabId) }
   return (
     <div className="layout">
       <aside className="sidebar">
@@ -41,12 +43,12 @@ export default function App() {
           <p>{active.desc}</p>
         </header>
         <div className="content">
-          {tab === 'home' && <Home onNav={setTab} />}
-          {tab === 'company' && <CompanyResearch />}
+          {tab === 'home' && <Home onNav={goTo} />}
+          {tab === 'company' && <CompanyResearch goTo={goTo} />}
           {tab === 'role' && <RoleInsight />}
           {tab === 'resume' && <Resume />}
-          {tab === 'interview' && <Interview />}
-          {tab === 'jobs' && <Jobs />}
+          {tab === 'interview' && <Interview initialCompany={ctx.company} initialJob={ctx.role} />}
+          {tab === 'jobs' && <Jobs goTo={goTo} />}
           {tab === 'board' && <Board />}
         </div>
       </main>

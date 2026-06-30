@@ -159,6 +159,14 @@ function Plans() {
           <div style={{ flex: 2 }}><label>할 일</label><input value={text} onChange={(e) => setText(e.target.value)} placeholder="OO 자소서 마감 / 면접 준비 등" /></div>
           <div style={{ flex: '0 0 160px' }}><label>날짜{selDay && ` (${selDay} 선택됨)`}</label><input type="date" value={due || selDay} onChange={(e) => setDue(e.target.value)} /></div>
         </div>
+        <div style={{ marginTop: 8 }}>
+          <div className="hint">빠른 추가(전형 단계):</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+            {['서류 마감', '인적성 검사', '코딩테스트', 'AI 역량검사', '1차 면접', '2차 면접', '임원 면접', '최종 발표'].map((t) => (
+              <button key={t} className="tab" style={{ fontSize: 12.5 }} onClick={() => setText(text ? text : t)}>+ {t}</button>
+            ))}
+          </div>
+        </div>
         <div style={{ marginTop: 14 }}><button className="btn" onClick={addPlan}>+ 추가</button></div>
         <h2 style={{ fontSize: 15, marginTop: 18 }}>{selDay ? `${selDay} 일정` : '날짜 미지정 할 일'} ({dayPlans.length})</h2>
         {dayPlans.length === 0 && <Empty>{selDay ? '이 날짜엔 일정이 없어요.' : '달력에서 날짜를 누르면 그 날 일정만 볼 수 있어요.'}</Empty>}

@@ -10,7 +10,7 @@ const CAREER = ['', '신입', '경력', '무관']
 const COTP = { '전체': '', '대기업': '01', '벤처기업': '03', '공공기관': '04', '외국계': '05', '청년친화강소': '09' }
 const REGDATE = { '전체기간': '', '오늘': 'D-0', '3일': 'D-3', '1주': 'W-1', '2주': 'W-2', '한달': 'M-1' }
 
-export default function Jobs() {
+export default function Jobs({ goTo }) {
   const [f, setF] = useState({ keyword: '', region: '', education: '', career: '', co_tp: '', reg_date: '' })
   const [res, setRes] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -53,7 +53,7 @@ export default function Jobs() {
         </div>
       )}
 
-      {detailNo && <JobDetail authNo={detailNo} onClose={() => setDetailNo(null)} />}
+      {detailNo && <JobDetail authNo={detailNo} onClose={() => setDetailNo(null)} goTo={goTo} />}
     </>
   )
 }
@@ -81,7 +81,7 @@ function JobRow({ j, onOpen }) {
   )
 }
 
-function JobDetail({ authNo, onClose }) {
+function JobDetail({ authNo, onClose, goTo }) {
   const [d, setD] = useState(null)
   const [err, setErr] = useState('')
   useEffect(() => {
@@ -99,7 +99,7 @@ function JobDetail({ authNo, onClose }) {
         {!d && !err && <Loading text="상세 정보를 불러오는 중…" />}
         {err && <div style={{ marginTop: 12 }}><ErrorBox>{err}</ErrorBox></div>}
         {d?.error && <div style={{ marginTop: 12 }}><ErrorBox>{d.error}</ErrorBox></div>}
-        {d && !d.error && <DetailBody d={d} />}
+        {d && !d.error && <DetailBody d={d} goTo={goTo} onClose={onClose} />}
       </div>
     </div>
   )
@@ -110,7 +110,7 @@ function Field({ k, v }) {
   return <div className="list-item"><div className="meta" style={{ fontWeight: 700, color: '#374151' }}>{k}</div><div style={{ fontSize: 14, marginTop: 3, whiteSpace: 'pre-wrap' }}>{v}</div></div>
 }
 
-function DetailBody({ d }) {
+function DetailBody({ d, goTo, onClose }) {
   const c = d.corp || {}, w = d.wanted || {}, ct = d.contact || {}
   return (
     <div style={{ marginTop: 12 }}>
@@ -137,8 +137,15 @@ function DetailBody({ d }) {
       <Field k="주소" v={c.address} />
       <Field k="채용 담당" v={[ct.department, ct.tel].filter(Boolean).join(' · ')} />
 
+      {/* 면접 대비 연계 */}
+      {goTo && (
+        <div style={{ marginTop: 16 }}>
+          <button className="btn" onClick={() => { goTo('interview', { company: c.name || '', role: w.job || '' }); onClose?.() }}>🎤 이 공고로 모의면접 준비</button>
+        </div>
+      )}
+
       {/* ⚠️ work24 준수: '채용정보 제공사이트로 이동' 버튼 필수 노출 */}
-      <div style={{ marginTop: 18 }}>
+      <div style={{ marginTop: 14 }}>
         <a className="btn dark" href={d.work24_url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', textDecoration: 'none' }}>
           🔗 채용정보 제공사이트로 이동
         </a>

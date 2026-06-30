@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { getCompany, getBrief } from './api.js'
 import { MD, Loading, ErrorBox, fmtKRW } from './ui.jsx'
 
-export default function CompanyResearch() {
+export default function CompanyResearch({ goTo }) {
   const [name, setName] = useState('')
   const [job, setJob] = useState('')
   const [data, setData] = useState(null)
@@ -70,10 +70,12 @@ export default function CompanyResearch() {
             <Item k="홈페이지" v={ov.homepage ? <a href={ov.homepage?.startsWith('http') ? ov.homepage : `http://${ov.homepage}`} target="_blank" rel="noreferrer">{ov.homepage}</a> : '—'} />
             <Item k="주소" v={ov.address} />
           </div>
-          <div style={{ marginTop: 16 }}>
-            <button className="btn dark" onClick={makeBrief} disabled={briefing}>
-              {briefing ? 'AI 브리핑 작성 중…' : '🤖 AI 면접 준비 브리핑 받기'}
+          <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn dark" onClick={() => makeBrief()} disabled={briefing}>
+              {briefing ? 'AI 브리핑 작성 중…' : '🤖 AI 면접 준비 브리핑'}
             </button>
+            {goTo && <button className="btn" onClick={() => goTo('interview', { company: ov.corp_name, role: job })}>🎤 이 회사로 모의면접</button>}
+            {goTo && <button className="btn ghost" onClick={() => goTo('resume', {})}>📝 자소서 쓰기</button>}
           </div>
           {briefing && <Loading text="사업보고서·재무·뉴스로 회사를 요약하는 중…" />}
           {brief && <div style={{ marginTop: 14 }}><MD>{brief}</MD></div>}

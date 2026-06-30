@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { genQuestions, evalAnswer, followup, questionsFromMaterials, sessionReport, modelAnswer } from './api.js'
 import { MD, Loading, ErrorBox } from './ui.jsx'
 import { startRecorder, analyzeDelivery } from './voice.js'
-import { startFaceAnalysis, analyzeFace } from './face.js'
+import { startCamera, runFaceAnalysis, analyzeFace } from './face.js'
 import { QUESTION_BANK, ROLE_QUESTIONS } from './questionBank.js'
 import { add, materialDocs } from './store.js'
 
@@ -11,7 +11,7 @@ const PERSONAS = ['일반', '압박', '인성', '직무', '임원']
 const PERSONA_DESC = { '일반': '인성·직무 균형', '압박': '허점을 파고드는 압박', '인성': '가치관·태도', '직무': '직무 전문성', '임원': '비전·인재상' }
 const TIMES = [{ v: 0, t: '제한 없음' }, { v: 60, t: '60초' }, { v: 90, t: '90초' }, { v: 120, t: '120초' }]
 
-export default function Interview() {
+export default function Interview({ initialCompany = '', initialJob = '' }) {
   const [src, setSrc] = useState('ai')
   const [persona, setPersona] = useState('일반')
   const [cam, setCam] = useState(false)
@@ -48,15 +48,15 @@ export default function Interview() {
           <button className={`tab ${src === 'mine' ? 'active' : ''}`} onClick={() => setSrc('mine')}>📄 내 자소서·스펙 기반</button>
         </div>
       </div>
-      {src === 'ai' && <AiQuestions cfg={cfg} />}
+      {src === 'ai' && <AiQuestions cfg={cfg} initialCompany={initialCompany} initialJob={initialJob} />}
       {src === 'bank' && <BankQuestions cfg={cfg} />}
       {src === 'mine' && <MineQuestions cfg={cfg} />}
     </>
   )
 }
 
-function AiQuestions({ cfg }) {
-  const [job, setJob] = useState(''); const [company, setCompany] = useState(''); const [count, setCount] = useState(5)
+function AiQuestions({ cfg, initialCompany = '', initialJob = '' }) {
+  const [job, setJob] = useState(initialJob); const [company, setCompany] = useState(initialCompany); const [count, setCount] = useState(5)
   const [questions, setQuestions] = useState([]); const [loading, setLoading] = useState(false); const [err, setErr] = useState('')
   async function start() {
     if (!job.trim()) { setErr('지원 직무를 입력하세요.'); return }
@@ -185,11 +185,24 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
   const [fup, setFup] = useState(''); const [model, setModel] = useState('')
   const [loading, setLoading] = useState(false); const [fuping, setFuping] = useState(false); const [modeling, setModeling] = useState(false)
   const [err, setErr] = useState(''); const [saved, setSaved] = useState(false)
-  const recogRef = useRef(null), recorderRef = useRef(null), faceRef = useRef(null), videoRef = useRef(null)
+  const recogRef = useRef(null), recorderRef = useRef(null), faceRef = useRef(null), videoRef = useRef(null), camRef = useRef(null)
   const baseRef = useRef(''), answerRef = useRef(''), timerRef = useRef(null)
 
   useEffect(() => { answerRef.current = answer }, [answer])
-  useEffect(() => () => { stopAll(true) }, [])
+  useEffect(() => () => { stopAll(true); try { camRef.current?.stop() } catch {} }, [])
+
+  // 화상 모드: 켜면 즉시 카메라 미리보기 시작(녹음과 무관하게 내 얼굴이 보이도록)
+  const [camReady, setCamReady] = useState(false)
+  useEffect(() => {
+    let alive = true
+    if (cam && videoRef.current) {
+      setCamReady(false)
+      startCamera(videoRef.current)
+        .then((c) => { if (alive) { camRef.current = c; setCamReady(true) } else c.stop() })
+        .catch(() => alive && setErr('카메라를 켤 수 없어요(권한/지원 확인).'))
+    }
+    return () => { alive = false; try { camRef.current?.stop() } catch {}; camRef.current = null; setCamReady(false) }
+  }, [cam])
 
   function stopAll(silent) {
     try { recogRef.current?.stop() } catch {}
@@ -217,10 +230,10 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
     try { window.speechSynthesis?.cancel() } catch {}
     try { recorderRef.current = await startRecorder((lv) => setLevel(lv)) }
     catch { setErr('마이크 권한이 필요해요.'); return }
-    if (cam && videoRef.current) {
+    if (cam && videoRef.current && camReady) {
       setCamLoading(true)
-      try { faceRef.current = await startFaceAnalysis(videoRef.current) }
-      catch { setErr('카메라를 시작하지 못했어요(권한/지원 확인).') }
+      try { faceRef.current = await runFaceAnalysis(videoRef.current) }
+      catch { setErr('표정 분석을 시작하지 못했어요.') }
       setCamLoading(false)
     }
     if (SR) {
@@ -261,8 +274,8 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
 
       {cam && (
         <div style={{ marginTop: 14, textAlign: 'center' }}>
-          <video ref={videoRef} muted playsInline className="cam-view" style={{ display: rec || camLoading ? 'block' : 'none' }} />
-          {camLoading && <div className="hint">카메라·얼굴 모델 준비 중…</div>}
+          <video ref={videoRef} muted playsInline autoPlay className="cam-view" />
+          <div className="hint">{camLoading ? '얼굴 분석 모델 준비 중…' : camReady ? (rec ? '🔴 표정·시선 분석 중' : '📹 카메라 켜짐 — 답변을 시작하면 분석해요') : '카메라 준비 중…'}</div>
         </div>
       )}
 

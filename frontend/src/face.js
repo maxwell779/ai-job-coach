@@ -31,13 +31,19 @@ async function getLandmarker() {
 const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0)
 const std = (a) => { const m = mean(a); return a.length ? Math.sqrt(mean(a.map((x) => (x - m) ** 2))) : 0 }
 
-// videoEl: 미리보기용 <video>. onFace(found:boolean): 실시간 표시용 콜백(선택)
-export async function startFaceAnalysis(videoEl, onFace) {
+// 카메라 미리보기 시작(분석과 분리) — 화상 모드 켜면 항상 내 얼굴이 보이도록.
+export async function startCamera(videoEl) {
   const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 }, audio: false })
   videoEl.srcObject = stream
+  videoEl.muted = true
   await videoEl.play().catch(() => {})
-  const lm = await getLandmarker()
+  getLandmarker().catch(() => {}) // 모델 미리 로드(분석 시 지연 최소화)
+  return { stop() { try { stream.getTracks().forEach((t) => t.stop()) } catch {}; try { videoEl.srcObject = null } catch {} } }
+}
 
+// 이미 재생 중인 videoEl에 대해 얼굴 분석 루프 실행(스트림은 startCamera가 관리)
+export async function runFaceAnalysis(videoEl, onFace) {
+  const lm = await getLandmarker()
   const gaze = [], smile = [], blink = [], browDown = [], noseX = [], noseY = []
   let faces = 0, frames = 0
   let raf = null, lastTs = -1
@@ -75,8 +81,7 @@ export async function startFaceAnalysis(videoEl, onFace) {
   return {
     stop() {
       if (raf) cancelAnimationFrame(raf)
-      try { stream.getTracks().forEach((t) => t.stop()) } catch {}
-      try { videoEl.srcObject = null } catch {}
+      // 스트림은 startCamera가 관리하므로 여기서 끄지 않는다(미리보기 유지)
       const faceRatio = frames ? faces / frames : 0
       // 깜빡임 횟수(0.5 임계 상승 에지)
       let blinks = 0
