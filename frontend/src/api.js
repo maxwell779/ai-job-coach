@@ -48,6 +48,9 @@ export const sessionReport = (body) =>
 export const modelAnswer = (body) =>
   fetch('/api/interview/model_answer', { method: 'POST', headers: J, body: JSON.stringify(body) }).then(handle)
 
+export const starCoach = (body) =>
+  fetch('/api/interview/star', { method: 'POST', headers: J, body: JSON.stringify(body) }).then(handle)
+
 export const ragSearch = (body) =>
   fetch('/api/rag/search', { method: 'POST', headers: J, body: JSON.stringify(body) }).then(handle)
 

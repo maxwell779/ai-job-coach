@@ -22,6 +22,31 @@ def _company_context(company: str) -> str:
     return " | ".join(bits)
 
 
+def star_coach(question: str, answer: str, job_title: str = "") -> dict:
+    """답변을 STAR(상황·과제·행동·결과)로 분해하고 빠진 요소를 짚어준다."""
+    if not (answer or "").strip():
+        return {"star": "답변을 먼저 입력하거나 녹음해 주세요."}
+    prompt = f"""당신은 면접 답변 코치입니다. 아래 답변을 STAR 구조로 분석하세요.
+
+[직무] {job_title or '(미지정)'}
+[질문] {question}
+[지원자 답변] {answer}
+
+마크다운으로:
+## STAR 구조 점검
+- **상황(S)**: (답변에서 찾은 내용 / 없으면 "❌ 빠짐")
+- **과제(T)**: ...
+- **행동(A)**: ...
+- **결과(R)**: ...
+## 빠지거나 약한 부분
+(가장 부족한 요소 1~2개와 왜 중요한지)
+## 보완 제안
+(빠진 요소를 채울 수 있는 구체적 질문/문장 예시 2~3개)
+
+규칙: 결과(R)는 가능하면 수치로 권한다. 짧고 실용적으로."""
+    return {"star": agent.quick_complete(prompt).strip()}
+
+
 def model_answer(question: str, answer: str = "", job_title: str = "") -> dict:
     """질문(과 내 답변)에 대한 STAR 기반 모범답안을 제시한다."""
     base = f"[내 답변] {answer}" if (answer or "").strip() else "(아직 답변 없음 — 일반 지원자 기준 예시)"

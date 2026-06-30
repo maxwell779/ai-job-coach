@@ -68,6 +68,12 @@ export async function startRecorder(onLevel) {
 
 const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0)
 const std = (a) => { const m = mean(a); return a.length ? Math.sqrt(mean(a.map((x) => (x - m) ** 2))) : 0 }
+// 인접 프레임 cycle-to-cycle 상대 변동(jitter/shimmer 근사): 평균 |diff| / 평균
+function localVar(a) {
+  if (!a || a.length < 2) return 0
+  let s = 0; for (let i = 1; i < a.length; i++) s += Math.abs(a[i] - a[i - 1])
+  s /= (a.length - 1); const m = mean(a); return m ? s / m : 0
+}
 
 function computeMetrics(vols, pitches, durationSec) {
   const fps = vols.length / Math.max(durationSec, 0.1)
@@ -82,6 +88,11 @@ function computeMetrics(vols, pitches, durationSec) {
   const volCV = volMean ? std(voiced) / volMean : 0
   const pitchMean = mean(pitches)
   const pitchCV = pitchMean ? std(pitches) / pitchMean : 0
+  // Jitter(피치 주기 cycle-to-cycle 변동) — 떨림/긴장의 표준 지표
+  const periods = pitches.filter((f) => f > 0).map((f) => 1 / f)
+  const jitter = localVar(periods)
+  // Shimmer(진폭 cycle-to-cycle 변동) — 목소리 약함/불안정
+  const shimmer = localVar(voiced)
   // 말끝 흐림: 후반 25% 발화 음량 / 전체 발화 음량 (1보다 작을수록 끝이 작아짐)
   const tail = vols.slice(Math.floor(vols.length * 0.75)).filter((v) => v >= SILENCE_RMS)
   const endRatio = volMean && tail.length ? mean(tail) / volMean : 1
@@ -93,6 +104,8 @@ function computeMetrics(vols, pitches, durationSec) {
     volCV: Math.round(volCV * 100) / 100,
     pitchMean: Math.round(pitchMean),
     pitchCV: Math.round(pitchCV * 100) / 100,
+    jitter: Math.round(jitter * 1000) / 1000,
+    shimmer: Math.round(shimmer * 1000) / 1000,
     endRatio: Math.round(endRatio * 100) / 100,
   }
 }
@@ -119,13 +132,14 @@ export function analyzeDelivery(metrics, transcript = '') {
   const dims = []
   let tension = 0
 
-  // 1) 떨림/안정감 (음높이·음량 변동)
-  if (metrics.pitchCV > 0.18 || metrics.volCV > 0.8) {
-    dims.push(dim('떨림', 'bad', '떨림 감지', '목소리가 떨려요. 깊게 숨을 쉬고 한 문장씩 천천히 안정적인 톤으로 말해보세요.')); tension += 28
-  } else if (metrics.pitchCV > 0.12 || metrics.volCV > 0.6) {
+  // 1) 떨림/안정감 — jitter(피치 주기 변동)·shimmer(진폭 변동) 표준 지표 + 보조(CV)
+  const jit = metrics.jitter || 0, shim = metrics.shimmer || 0
+  if (jit > 0.04 || shim > 0.18 || metrics.pitchCV > 0.18) {
+    dims.push(dim('떨림', 'bad', '떨림 감지', `목소리가 떨려요(jitter ${(jit * 100).toFixed(1)}%). 깊게 숨 쉬고 한 문장씩 천천히 안정적인 톤으로.`)); tension += 28
+  } else if (jit > 0.025 || shim > 0.12 || metrics.pitchCV > 0.12) {
     dims.push(dim('떨림', 'warn', '약간 흔들림', '톤이 조금 흔들려요. 문장 끝까지 같은 높이를 유지해보세요.')); tension += 12
   } else {
-    dims.push(dim('떨림', 'good', '안정적', '목소리가 안정적이에요. 좋습니다!'))
+    dims.push(dim('떨림', 'good', '안정적', '목소리가 안정적이에요(jitter/shimmer 정상). 좋습니다!'))
   }
 
   // 2) 자신감 (성량·발화 비율)

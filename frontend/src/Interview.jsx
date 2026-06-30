@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { genQuestions, evalAnswer, followup, questionsFromMaterials, sessionReport, modelAnswer } from './api.js'
+import { genQuestions, evalAnswer, followup, questionsFromMaterials, sessionReport, modelAnswer, starCoach } from './api.js'
 import { MD, Loading, ErrorBox } from './ui.jsx'
 import { startRecorder, analyzeDelivery } from './voice.js'
 import { startCamera, runFaceAnalysis, analyzeFace } from './face.js'
@@ -196,8 +196,8 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
   const [faceRes, setFaceRes] = useState(null)
   const [gazeOff, setGazeOff] = useState(false)
   const [camLoading, setCamLoading] = useState(false)
-  const [fup, setFup] = useState(''); const [model, setModel] = useState(''); const [tri, setTri] = useState(null)
-  const [loading, setLoading] = useState(false); const [fuping, setFuping] = useState(false); const [modeling, setModeling] = useState(false)
+  const [fup, setFup] = useState(''); const [model, setModel] = useState(''); const [tri, setTri] = useState(null); const [star, setStar] = useState('')
+  const [loading, setLoading] = useState(false); const [fuping, setFuping] = useState(false); const [modeling, setModeling] = useState(false); const [starring, setStarring] = useState(false)
   const [err, setErr] = useState(''); const [saved, setSaved] = useState(false)
   const recogRef = useRef(null), recorderRef = useRef(null), faceRef = useRef(null), videoRef = useRef(null), camRef = useRef(null)
   const baseRef = useRef(''), answerRef = useRef(''), timerRef = useRef(null)
@@ -283,6 +283,7 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
   }
   async function getFollowup() { setFuping(true); setFup(''); try { setFup((await followup({ question: q, answer, job_title: job, persona })).followup) } catch (e) { setErr(e.message) } setFuping(false) }
   async function getModel() { setModeling(true); setModel(''); try { setModel((await modelAnswer({ question: q, answer, job_title: job })).model_answer) } catch (e) { setErr(e.message) } setModeling(false) }
+  async function getStar() { if (!answer.trim()) { setErr('답변을 입력하세요.'); return } setStarring(true); setStar(''); try { setStar((await starCoach({ question: q, answer, job_title: job })).star) } catch (e) { setErr(e.message) } setStarring(false) }
   function practiceFollowup() { setQ(fup); setFup(''); setAnswer(''); setFeedback(''); setDelivery(null); setFaceRes(null); setModel('') }
   function saveExperience() { add('experiences', { title: q.slice(0, 40), result: answer, fromInterview: true, tags: [job] }); setSaved(true) }
 
@@ -321,6 +322,7 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
       <div className="row" style={{ marginTop: 14 }}>
         <button className="btn" onClick={submit} disabled={loading} style={{ flex: '0 0 auto' }}>{loading ? '평가 중…' : '✅ 답변 평가'}</button>
         {feedback && <button className="btn ghost sm" onClick={getFollowup} disabled={fuping} style={{ flex: '0 0 auto' }}>{fuping ? '…' : '🔎 꼬리질문'}</button>}
+        <button className="btn ghost sm" onClick={getStar} disabled={starring} style={{ flex: '0 0 auto' }}>{starring ? '…' : '📋 STAR 분석'}</button>
         <button className="btn ghost sm" onClick={getModel} disabled={modeling} style={{ flex: '0 0 auto' }}>{modeling ? '…' : '🌟 모범답안'}</button>
         {answer.trim() && <button className="btn ghost sm" onClick={saveExperience} disabled={saved} style={{ flex: '0 0 auto' }}>{saved ? '저장됨' : '💼 경험 저장'}</button>}
         <div style={{ flex: 1 }} />
@@ -336,6 +338,12 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
         <div className="qcard" style={{ marginTop: 14, background: '#fff7ed' }}>
           <div style={{ fontWeight: 700, marginBottom: 6 }}>🔎 꼬리질문</div>{fup}
           <div style={{ marginTop: 10 }}><button className="btn ghost sm" onClick={practiceFollowup}>이 질문으로 이어서 답하기 →</button></div>
+        </div>
+      )}
+      {starring && <Loading text="STAR 구조를 분석하는 중…" />}
+      {star && (
+        <div className="card" style={{ marginTop: 14, background: '#fffaf0' }}>
+          <h2 style={{ fontSize: 15 }}>📋 STAR 구조 분석</h2><MD>{star}</MD>
         </div>
       )}
       {model && (

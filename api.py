@@ -261,6 +261,11 @@ def interview_model_answer(body: ModelAnsIn):
     return interview.model_answer(body.question, body.answer, body.job_title)
 
 
+@app.post("/api/interview/star")
+def interview_star(body: ModelAnsIn):
+    return interview.star_coach(body.question, body.answer, body.job_title)
+
+
 # ── RAG 검색(내 자료) ──
 class RagIn(BaseModel):
     query: str
