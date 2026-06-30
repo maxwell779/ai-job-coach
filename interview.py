@@ -13,9 +13,7 @@ def _company_context(company: str) -> str:
     if ov.get("error"):
         return ""
     bits = [f"{ov.get('corp_name')}({ov.get('corp_class')})"]
-    biz = tools.get_dart_business_overview(company)
-    if not biz.get("error") and biz.get("text"):
-        bits.append("사업개요: " + biz["text"][:600])
+    # 주: 사업보고서 본문(get_dart_business_overview)은 수 MB 다운로드라 면접 질문 생성엔 제외(속도).
     news = tools.get_naver_news(ov.get("corp_name", company), display=3)
     if news.get("news"):
         bits.append("최근 이슈: " + " / ".join(n["title"] for n in news["news"][:3]))

@@ -245,3 +245,9 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
 .btn.ok { background: linear-gradient(135deg,#16a34a,#0ea5e9); }
 .upload-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--brand-weak); color: var(--brand); font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 10px; cursor: pointer; }
 .upload-btn:hover { background: #fff; box-shadow: var(--shadow); }
+
+/* 큰 토글 버튼(화상/정확모드) */
+.toggle-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 12px;
+  border: 2px solid var(--line); background: #fff; color: var(--muted); font-size: 14px; font-weight: 700; cursor: pointer; transition: .12s; }
+.toggle-btn:hover { border-color: var(--brand); }
+.toggle-btn.on { background: var(--grad); color: #fff; border-color: transparent; box-shadow: 0 2px 10px rgba(91,91,240,.35); }

@@ -17,6 +17,7 @@ import html
 import json
 import zipfile
 import datetime
+import tempfile
 import xml.etree.ElementTree as ET
 import requests
 
@@ -69,33 +70,51 @@ _CORP_INDEX = None
 
 
 def _corp_index():
-    """corpCode.xml(전 기업)을 1회 받아 [{corp_code,corp_name,stock_code}] 인덱스로 캐시."""
+    """corpCode.xml(전 기업)을 1회 받아 [{corp_code,corp_name,stock_code}] 인덱스로 캐시.
+    실패 시 빈 결과를 '영구 캐시'하지 않고(다음 호출에 재시도) 캐시는 쓰기 가능한 위치를 사용."""
     global _CORP_INDEX
-    if _CORP_INDEX is not None:
+    if _CORP_INDEX:  # 비어있지 않은 캐시만 신뢰(실패→재시도)
         return _CORP_INDEX
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dart_corp_index.json")
-    if os.path.exists(path):
-        with open(path, encoding="utf-8") as f:
-            _CORP_INDEX = json.load(f)
-        return _CORP_INDEX
+    # 캐시 경로: 앱 폴더가 읽기전용일 수 있어 실패 시 /tmp 대체
+    base = os.path.dirname(os.path.abspath(__file__))
+    cache_paths = [os.path.join(base, "dart_corp_index.json"),
+                   os.path.join(tempfile.gettempdir(), "dart_corp_index.json")]
+    for p in cache_paths:
+        if os.path.exists(p):
+            try:
+                with open(p, encoding="utf-8") as f:
+                    data = json.load(f)
+                if data:
+                    _CORP_INDEX = data
+                    return _CORP_INDEX
+            except Exception:
+                pass
     key = os.environ.get("DART_API_KEY")
-    _CORP_INDEX = []
     if not key:
-        return _CORP_INDEX
+        return []
+    idx = []
     try:
-        r = requests.get(f"{_DART_BASE}/corpCode.xml", params={"crtfc_key": key}, timeout=40)
+        r = requests.get(f"{_DART_BASE}/corpCode.xml", params={"crtfc_key": key}, timeout=60)
         zf = zipfile.ZipFile(io.BytesIO(r.content))
         root = ET.fromstring(zf.read(zf.namelist()[0]))
         for el in root.iter("list"):
-            _CORP_INDEX.append({
+            idx.append({
                 "corp_code": (el.findtext("corp_code") or "").strip(),
                 "corp_name": (el.findtext("corp_name") or "").strip(),
                 "stock_code": (el.findtext("stock_code") or "").strip(),
             })
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(_CORP_INDEX, f, ensure_ascii=False)
     except Exception:
-        pass
+        return []  # 실패: 캐시하지 않음 → 다음 호출에 재시도
+    if not idx:
+        return []
+    _CORP_INDEX = idx
+    for p in cache_paths:  # 쓰기 가능한 곳에 저장 시도
+        try:
+            with open(p, "w", encoding="utf-8") as f:
+                json.dump(idx, f, ensure_ascii=False)
+            break
+        except Exception:
+            continue
     return _CORP_INDEX
 
 

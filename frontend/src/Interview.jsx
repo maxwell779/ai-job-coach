@@ -34,22 +34,19 @@ export default function Interview({ initialCompany = '', initialJob = '' }) {
           ))}
         </div>
         <div className="hint" style={{ marginTop: 6 }}>👤 {persona} — {PERSONA_DESC[persona]}</div>
-        <div className="row" style={{ marginTop: 12 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', margin: 0 }}>
-            <input type="checkbox" checked={cam} onChange={(e) => setCam(e.target.checked)} style={{ width: 18 }} />
-            📹 화상(표정·시선) 분석
-          </label>
-          <div style={{ flex: '0 0 160px' }}>
-            <select value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value))}>
-              {TIMES.map((t) => <option key={t.v} value={t.v}>⏱ {t.t}</option>)}
-            </select>
-          </div>
+        <label style={{ marginTop: 14 }}>면접 모드</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <button type="button" className={`toggle-btn ${cam ? 'on' : ''}`} onClick={() => setCam(!cam)}>
+            <span style={{ fontSize: 20 }}>📹</span> 화상(표정·시선) 분석 {cam ? 'ON' : 'OFF'}
+          </button>
           {whisperOk && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', margin: 0, flex: '0 0 auto' }} title="로컬 Whisper 정확 인식">
-              <input type="checkbox" checked={whisper} onChange={(e) => setWhisper(e.target.checked)} style={{ width: 18 }} />
-              🎯 정확 모드(Whisper)
-            </label>
+            <button type="button" className={`toggle-btn ${whisper ? 'on' : ''}`} onClick={() => setWhisper(!whisper)} title="로컬 Whisper 정확 인식">
+              <span style={{ fontSize: 20 }}>🎯</span> 정확 모드(Whisper) {whisper ? 'ON' : 'OFF'}
+            </button>
           )}
+          <select value={timeLimit} onChange={(e) => setTimeLimit(Number(e.target.value))} style={{ flex: '0 0 150px' }}>
+            {TIMES.map((t) => <option key={t.v} value={t.v}>⏱ {t.t}</option>)}
+          </select>
         </div>
         <div className="tabs" style={{ marginTop: 14 }}>
           <button className={`tab ${src === 'ai' ? 'active' : ''}`} onClick={() => setSrc('ai')}>🤖 AI 맞춤</button>
