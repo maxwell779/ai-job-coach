@@ -78,7 +78,19 @@ function localVar(a) {
   s /= (a.length - 1); const m = mean(a); return m ? s / m : 0
 }
 
-function computeMetrics(vols, pitches, durationSec, clarities = []) {
+// 3점 메디안 필터 — 자기상관 옥타브 점프(이상치) 제거로 피치/jitter 정확도↑
+function medianSmooth(a) {
+  if (a.length < 3) return a
+  const out = a.slice()
+  for (let i = 1; i < a.length - 1; i++) {
+    const t = [a[i - 1], a[i], a[i + 1]].sort((x, y) => x - y)
+    out[i] = t[1]
+  }
+  return out
+}
+
+function computeMetrics(vols, pitchesRaw, durationSec, clarities = []) {
+  const pitches = medianSmooth(pitchesRaw)
   const fps = vols.length / Math.max(durationSec, 0.1)
   const voiced = vols.filter((v) => v >= SILENCE_RMS)
   const speakingRatio = vols.length ? voiced.length / vols.length : 0
