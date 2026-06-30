@@ -1,6 +1,60 @@
+import { useState } from 'react'
 import { useCollection } from './store.js'
 
 const STAGES = ['관심', '지원', '서류합격', '면접', '최종합격', '불합격']
+const pad = (n) => String(n).padStart(2, '0')
+
+function MiniCalendar({ plans }) {
+  const [cur, setCur] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() } })
+  const first = new Date(cur.y, cur.m, 1)
+  const startDow = first.getDay()
+  const days = new Date(cur.y, cur.m + 1, 0).getDate()
+  const todayStr = `${new Date().getFullYear()}-${pad(new Date().getMonth() + 1)}-${pad(new Date().getDate())}`
+  const byDate = {}
+  for (const p of plans) if (p.due) (byDate[p.due] = byDate[p.due] || []).push(p)
+  const cells = []
+  for (let i = 0; i < startDow; i++) cells.push(null)
+  for (let d = 1; d <= days; d++) cells.push(`${cur.y}-${pad(cur.m + 1)}-${pad(d)}`)
+  function move(x) { let m = cur.m + x, y = cur.y; if (m < 0) { m = 11; y-- } else if (m > 11) { m = 0; y++ } setCur({ y, m }) }
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button className="btn ghost sm" onClick={() => move(-1)}>‹</button>
+        <h2 style={{ margin: 0 }}>🗓 {cur.y}.{pad(cur.m + 1)}</h2>
+        <button className="btn ghost sm" onClick={() => move(1)}>›</button>
+      </div>
+      <div className="cal">
+        {['일', '월', '화', '수', '목', '금', '토'].map((w, i) => (
+          <div key={w} className="cal-dow" style={{ color: i === 0 ? 'var(--up)' : i === 6 ? 'var(--brand)' : 'var(--muted)' }}>{w}</div>
+        ))}
+        {cells.map((c, i) => (
+          <div key={i} className={`cal-cell ${c ? '' : 'empty'} ${c === todayStr ? 'today' : ''}`} title={c && byDate[c] ? byDate[c].map((p) => p.text).join(', ') : ''}>
+            {c && <><span className="cal-num">{Number(c.slice(-2))}</span>{byDate[c] && <span className="cal-dot" />}</>}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ScoreTrend({ sessions }) {
+  const data = sessions.slice(0, 8).reverse()
+  if (data.length === 0) return null
+  return (
+    <div className="card">
+      <h2>📈 모의면접 점수 추이</h2>
+      <div className="trend">
+        {data.map((s, i) => (
+          <div className="trend-col" key={i}>
+            <div className="trend-v" style={{ color: s.score >= 75 ? 'var(--ok)' : s.score >= 50 ? 'var(--warn)' : 'var(--up)' }}>{s.score}</div>
+            <div className="trend-bar" style={{ height: `${Math.max(6, s.score * 0.9)}%` }} />
+            <div className="trend-d">{(s.date || '').slice(5)}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 const STAGE_COLOR = { '관심': '#6b7280', '지원': '#5b5bf0', '서류합격': '#7c3aed', '면접': '#f59e0b', '최종합격': '#16a34a', '불합격': '#9ca3af' }
 
 function dday(due) {
@@ -18,6 +72,7 @@ export default function Home({ onNav }) {
   const resumes = useCollection('resumes')
   const exps = useCollection('experiences')
   const specs = useCollection('specs')
+  const sessions = useCollection('sessions')
 
   const active = apps.filter((a) => !['최종합격', '불합격'].includes(a.stage)).length
   const upcoming = plans.filter((p) => !p.done && p.due)
@@ -89,6 +144,10 @@ export default function Home({ onNav }) {
           </div>
         </div>
       )}
+
+      <ScoreTrend sessions={sessions} />
+
+      <MiniCalendar plans={plans} />
 
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

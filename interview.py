@@ -13,10 +13,30 @@ def _company_context(company: str) -> str:
     if ov.get("error"):
         return ""
     bits = [f"{ov.get('corp_name')}({ov.get('corp_class')})"]
+    biz = tools.get_dart_business_overview(company)
+    if not biz.get("error") and biz.get("text"):
+        bits.append("사업개요: " + biz["text"][:600])
     news = tools.get_naver_news(ov.get("corp_name", company), display=3)
     if news.get("news"):
         bits.append("최근 이슈: " + " / ".join(n["title"] for n in news["news"][:3]))
     return " | ".join(bits)
+
+
+def model_answer(question: str, answer: str = "", job_title: str = "") -> dict:
+    """질문(과 내 답변)에 대한 STAR 기반 모범답안을 제시한다."""
+    base = f"[내 답변] {answer}" if (answer or "").strip() else "(아직 답변 없음 — 일반 지원자 기준 예시)"
+    prompt = f"""당신은 면접 코치입니다. 아래 질문에 대한 '모범답안 구성'을 제시하세요.
+
+[직무] {job_title or '(미지정)'}
+[질문] {question}
+{base}
+
+규칙:
+- STAR(상황-과제-행동-결과) 구조로, 실제로 말할 수 있는 자연스러운 한국어 답변 예시(250~400자).
+- 내 답변이 있으면 그 내용을 살려 더 좋게 다듬고, 없으면 일반 예시로.
+- 거짓 경력은 만들지 말고 '[본인 경험]' 같은 자리표시로 비워둔다.
+- 마지막에 '💡 핵심 포인트' 2~3개를 불릿으로."""
+    return {"model_answer": agent.quick_complete(prompt).strip()}
 
 
 # 면접관 페르소나 — 질문/평가의 톤·난이도·관점을 바꾼다

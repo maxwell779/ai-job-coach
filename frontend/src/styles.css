@@ -152,6 +152,18 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
 
 .qcard { background: var(--brand-weak); border-radius: 12px; padding: 16px; font-size: 15px; font-weight: 600; }
 
+/* 웹캠 미리보기(거울) + 타이머 */
+.cam-view { width: 100%; max-width: 360px; border-radius: 14px; transform: scaleX(-1); background: #000; aspect-ratio: 4/3; box-shadow: var(--shadow); }
+.timer { font-weight: 800; font-size: 18px; color: var(--brand); margin-top: 4px; }
+.timer.warn { color: var(--up); }
+
+/* 점수 추이 막대 */
+.trend { display: flex; align-items: flex-end; gap: 8px; height: 110px; margin-top: 12px; }
+.trend-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 5px; }
+.trend-bar { width: 100%; max-width: 40px; border-radius: 7px 7px 0 0; background: var(--grad); min-height: 6px; }
+.trend-v { font-size: 12px; font-weight: 800; }
+.trend-d { font-size: 10.5px; color: var(--muted); }
+
 /* 실시간 음량 미터 */
 .meter { width: 80%; max-width: 320px; height: 12px; background: #eef0f3; border-radius: 99px; margin: 6px auto 0; overflow: hidden; }
 .meter-fill { height: 100%; background: linear-gradient(90deg, #16a34a, #f59e0b, #f04452); border-radius: 99px; transition: width .08s linear; }

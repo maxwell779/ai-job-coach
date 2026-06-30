@@ -250,6 +250,17 @@ def interview_report(body: ReportIn):
     return interview.session_report(body.qa_list, body.job_title)
 
 
+class ModelAnsIn(BaseModel):
+    question: str
+    answer: str = ""
+    job_title: str = ""
+
+
+@app.post("/api/interview/model_answer")
+def interview_model_answer(body: ModelAnsIn):
+    return interview.model_answer(body.question, body.answer, body.job_title)
+
+
 # ── RAG 검색(내 자료) ──
 class RagIn(BaseModel):
     query: str
