@@ -48,6 +48,19 @@ export default function Interview({ initialCompany = '', initialJob = '' }) {
           <button className={`tab ${src === 'mine' ? 'active' : ''}`} onClick={() => setSrc('mine')}>📄 내 자소서·스펙 기반</button>
         </div>
       </div>
+      {cam && (
+        <div className="card" style={{ background: '#f5f7ff' }}>
+          <h2 style={{ fontSize: 15 }}>🎥 영상면접 합격 체크리스트</h2>
+          <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 13.5, lineHeight: 1.8, color: '#374151' }}>
+            <li><b>카메라 높이</b>: 눈높이에 맞춰 정면(아래서 올려다보는 각도 X)</li>
+            <li><b>시선</b>: 화면이 아닌 <b>카메라 렌즈</b>를 보며 말하기</li>
+            <li><b>배경</b>: 깔끔한 단색 벽 · 밝은 정면 조명(역광 X)</li>
+            <li><b>복장</b>: 상의는 깔끔한 셔츠·블라우스(무늬 적게)</li>
+            <li><b>자세·표정</b>: 어깨 펴고, 답변 끝에 가벼운 미소</li>
+            <li><b>환경</b>: 조용한 곳 · 마이크 정상 · 답변은 두괄식 1분 내외</li>
+          </ul>
+        </div>
+      )}
       {src === 'ai' && <AiQuestions cfg={cfg} initialCompany={initialCompany} initialJob={initialJob} />}
       {src === 'bank' && <BankQuestions cfg={cfg} />}
       {src === 'mine' && <MineQuestions cfg={cfg} />}

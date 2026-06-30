@@ -3,6 +3,7 @@ import { getCompany, getBrief, getRoleBrief, getNews } from './api.js'
 import { MD, Loading, ErrorBox, fmtKRW } from './ui.jsx'
 import { ROLE_QUESTIONS } from './questionBank.js'
 import { JOB_GROUPS, INDUSTRIES, ALL_JOBS } from './jobTaxonomy.js'
+import { findDivisions } from './companyDivisions.js'
 
 const GROUPS = Object.keys(JOB_GROUPS)
 
@@ -11,6 +12,7 @@ export default function Explore({ goTo, onContext }) {
   const [industry, setIndustry] = useState('')
   const [group, setGroup] = useState(GROUPS[0])
   const [role, setRole] = useState('')
+  const [division, setDivision] = useState('')
 
   const [data, setData] = useState(null)
   const [brief, setBrief] = useState(''); const [biz, setBiz] = useState(null)
@@ -24,7 +26,7 @@ export default function Explore({ goTo, onContext }) {
   async function analyze(e) {
     e?.preventDefault()
     if (!company.trim() && !role.trim()) { setErr('회사명 또는 직무 중 하나는 입력하세요.'); return }
-    setErr(''); setData(null); setBrief(''); setBiz(null); setRoleBrief(''); setQuestions(ROLE_QUESTIONS[role] || []); setNews([])
+    setErr(''); setData(null); setBrief(''); setBiz(null); setRoleBrief(''); setQuestions(ROLE_QUESTIONS[role] || []); setNews([]); setDivision('')
     onContext?.({ company: company.trim(), role: role.trim() })
     const jobCtx = [role, industry && `${industry} 산업`].filter(Boolean).join(' · ')
 
@@ -52,7 +54,17 @@ export default function Explore({ goTo, onContext }) {
     getNews(nq, 6).then((r) => setNews(r.news || [])).catch(() => {})
   }
 
+  async function pickDivision(div) {
+    setDivision(div)
+    const cn = data?.resolved?.corp_name || company
+    const jc = [role, div, industry && `${industry} 산업`].filter(Boolean).join(' · ')
+    setBriefing(true)
+    try { const r = await getBrief(cn, jc); setBrief(r.brief); if (r.business?.text) setBiz(r.business) } catch {}
+    setBriefing(false)
+  }
+
   const ov = data?.overview, fin = data?.financials
+  const divInfo = ov && !ov.error ? findDivisions(ov.corp_name) : null
   const ready = data || brief || roleBrief || news.length
 
   return (
@@ -96,8 +108,18 @@ export default function Explore({ goTo, onContext }) {
             <Item k="대표자" v={ov.ceo} /><Item k="설립일" v={ov.established} /><Item k="종목코드" v={ov.stock_code || '비상장'} />
             <Item k="결산월" v={ov.settlement_month} /><Item k="주소" v={ov.address} />
           </div>
+          {divInfo && (
+            <div style={{ marginTop: 14 }}>
+              <div className="hint" style={{ fontWeight: 700, color: 'var(--text)' }}>🏭 사업부문 선택(부문별 맞춤 분석)</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                {divInfo.divisions.map((d) => (
+                  <button key={d} className={`tab ${division === d ? 'active' : ''}`} style={{ fontSize: 12.5 }} onClick={() => pickDivision(d)}>{d}</button>
+                ))}
+              </div>
+            </div>
+          )}
           <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {goTo && <button className="btn" onClick={() => goTo('interview', { company: ov.corp_name, role })}>🎤 이 회사{role && `·${role}`}로 모의면접</button>}
+            {goTo && <button className="btn" onClick={() => goTo('interview', { company: ov.corp_name + (division ? ` ${division}` : ''), role })}>🎤 이 회사{division ? ` ${division}` : ''}{role && `·${role}`}로 모의면접</button>}
             {goTo && <button className="btn ghost" onClick={() => goTo('resume', {})}>📝 자소서 쓰기</button>}
           </div>
           {briefing && <Loading text="사업보고서·재무·뉴스로 회사를 요약하는 중…" />}
