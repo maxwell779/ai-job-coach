@@ -77,6 +77,8 @@ def company_brief(body: BriefIn):
         return JSONResponse({"error": ov["error"]}, status_code=404)
     fin = tools.get_dart_financials(body.name)
     news = tools.get_naver_news(ov.get("corp_name", body.name), display=5).get("news", [])
+    biz = tools.get_dart_business_overview(body.name)
+    biz_text = "" if biz.get("error") else biz.get("text", "")[:2200]
     fin_str = ""
     if not fin.get("error") and fin.get("revenue"):
         rev = fin["revenue"][0]
@@ -86,18 +88,22 @@ def company_brief(body: BriefIn):
 없는 사실은 지어내지 말고, 데이터에 있는 것만 사용하세요.
 
 [회사] {ov.get('corp_name')} (대표 {ov.get('ceo')}, 설립 {ov.get('established')}, {ov.get('corp_class')})
-[업종/상장] {ov.get('corp_class')}  홈페이지 {ov.get('homepage')}
+[홈페이지] {ov.get('homepage')}
 [재무] {fin_str or '공개 재무 데이터 없음'}
+[사업보고서 '사업의 개요' 발췌]
+{biz_text or '(사업보고서 본문 없음)'}
 [최근 뉴스] {news_str or '뉴스 없음'}
 [지원 직무] {body.job_title or '(미지정)'}
 
 마크다운으로:
-## 한 줄 요약 (무슨 회사인지)
-## 최근 실적·이슈 (데이터 기반)
+## 한 줄 요약 (무슨 회사인지 — 사업보고서 기반)
+## 주요 사업·부문 (사업보고서 기반, 쉽게 풀어서)
+## 최근 실적·이슈 (재무·뉴스 기반)
 ## 면접에서 어필할 포인트 (3가지)
 ## 예상 면접 질문 (3가지)"""
     return {"brief": agent_mod.quick_complete(prompt).strip(),
-            "overview": ov, "financials": fin, "news": news}
+            "overview": ov, "financials": fin, "news": news,
+            "business": ({} if biz.get("error") else {"text": biz_text, "link": biz.get("link")})}
 
 
 # ── 뉴스 검색(직무·산업·키워드) ──
@@ -204,6 +210,7 @@ class FollowupIn(BaseModel):
     question: str
     answer: str
     job_title: str = ""
+    persona: str = "압박"
 
 
 class MaterialsQIn(BaseModel):
@@ -230,7 +237,7 @@ def interview_evaluate(body: EvalIn):
 
 @app.post("/api/interview/followup")
 def interview_followup(body: FollowupIn):
-    return interview.generate_followup(body.question, body.answer, body.job_title)
+    return interview.generate_followup(body.question, body.answer, body.job_title, persona=body.persona)
 
 
 @app.post("/api/interview/from_materials")

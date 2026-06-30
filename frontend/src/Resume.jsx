@@ -9,8 +9,7 @@ export default function Resume() {
   return (
     <>
       <div className="card">
-        <h2>📝 자소서 도우미</h2>
-        <p className="desc">대표 문항을 고르면 회사·직무 맞춤 초안을 만들고, 첨삭하고, <b>회사별로 저장·관리</b>해요. (거짓 경력은 만들지 않습니다)</p>
+        <p className="desc" style={{ marginBottom: 12 }}>대표 문항을 고르면 회사·직무 맞춤 초안을 만들고, 첨삭하고, <b>회사별로 저장·관리</b>해요. (거짓 경력은 만들지 않습니다)</p>
         <div className="tabs" style={{ marginTop: 0 }}>
           <button className={`tab ${mode === 'draft' ? 'active' : ''}`} onClick={() => setMode('draft')}>✍️ 작성·생성</button>
           <button className={`tab ${mode === 'review' ? 'active' : ''}`} onClick={() => setMode('review')}>🔍 첨삭</button>

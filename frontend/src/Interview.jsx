@@ -18,8 +18,7 @@ export default function Interview() {
   return (
     <>
       <div className="card">
-        <h2>🎤 음성 모의 면접</h2>
-        <p className="desc">
+        <p className="desc" style={{ marginBottom: 12 }}>
           말로 답하면 AI가 내용을 평가하고 <b>떨림·자신감·속도</b>까지 분석해요. <b>꼬리질문</b>·<b>세션 종합 리포트</b>도 제공.
           {!SR && ' (음성 인식은 Chrome 권장)'}
         </p>
@@ -237,7 +236,7 @@ function QuestionCard({ n, total, question, job, persona, onRecord, onPrev, onNe
 
   async function getFollowup() {
     setFuping(true); setFup('')
-    try { setFup((await followup({ question: q, answer, job_title: job })).followup) } catch (e) { setErr(e.message) }
+    try { setFup((await followup({ question: q, answer, job_title: job, persona })).followup) } catch (e) { setErr(e.message) }
     setFuping(false)
   }
   function practiceFollowup() {

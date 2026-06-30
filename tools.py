@@ -360,6 +360,77 @@ def get_dart_filings(company: str, limit: int = 6) -> dict:
         return {"error": str(e), "filings": []}
 
 
+def get_dart_business_overview(company: str) -> dict:
+    """최신 사업보고서 본문에서 '사업의 개요'를 추출한다(이 회사가 실제로 무슨 사업을 하는지).
+
+    Args:
+        company: 회사명 또는 corp_code.
+
+    Returns:
+        {"corp_name","rcept_no","text"(사업개요 발췌, ~3000자),"link"} 또는 {"error"}.
+    """
+    key = os.environ.get("DART_API_KEY")
+    if not key:
+        return {"error": "DART_API_KEY가 없습니다."}
+    resolved, err = _to_corp(company)
+    if err:
+        return err
+    corp_code, name = resolved
+    # 최신 '사업보고서' 접수번호 찾기
+    try:
+        bgn = (datetime.date.today() - datetime.timedelta(days=540)).strftime("%Y%m%d")
+        d = requests.get(f"{_DART_BASE}/list.json",
+                         params={"crtfc_key": key, "corp_code": corp_code, "bgn_de": bgn,
+                                 "pblntf_ty": "A", "page_count": "30"}, timeout=15).json()
+        if d.get("status") != "000":
+            return {"error": f"DART 공시목록 조회 실패: {d.get('message')}"}
+        rcept = None
+        for it in d.get("list", []):
+            nm = it.get("report_nm", "")
+            if "사업보고서" in nm and "정정" not in nm:
+                rcept = it.get("rcept_no"); break
+        if not rcept:  # 사업보고서 없으면 반기/분기라도
+            for it in d.get("list", []):
+                if any(k in it.get("report_nm", "") for k in ("반기보고서", "분기보고서")):
+                    rcept = it.get("rcept_no"); break
+        if not rcept:
+            return {"error": f"{name}의 사업/분기 보고서를 찾지 못했습니다(비상장 등)."}
+    except Exception as e:
+        return {"error": f"공시목록 조회 실패: {e}"}
+    # 보고서 원문(zip) 받아 텍스트화 → '사업의 개요' 발췌
+    try:
+        r = requests.get(f"{_DART_BASE}/document.xml", params={"crtfc_key": key, "rcept_no": rcept}, timeout=30)
+        zf = zipfile.ZipFile(io.BytesIO(r.content))
+        # zip 안 여러 파일(본문/감사보고서/첨부) 중 '사업의 개요/내용'이 있는 본문을 찾는다
+        KWS = ("사업의 개요", "사업의 내용", "회사의 개요")
+        snippet = ""
+        fallback = ""
+        for nm in zf.namelist():
+            raw = zf.read(nm)
+            try:
+                t = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                t = raw.decode("cp949", errors="ignore")
+            t = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", t))).strip()
+            if not fallback and len(t) > 500:
+                fallback = t
+            for kw in KWS:
+                i = t.find(kw)
+                if i >= 0:
+                    snippet = t[i:i + 3500]
+                    break
+            if snippet:
+                break
+        if not snippet:
+            snippet = fallback[:3000]
+        EVIDENCE.append({"tool": "get_dart_business_overview", "input": name, "source": "DART 사업보고서 본문",
+                         "output": f"사업개요 {len(snippet)}자 발췌"})
+        return {"corp_name": name, "rcept_no": rcept, "text": snippet,
+                "link": f"https://dart.fss.or.kr/dsaf001/main.do?rcpNo={rcept}"}
+    except Exception as e:
+        return {"error": f"사업보고서 본문 처리 실패: {e}"}
+
+
 def get_naver_news(query: str, display: int = 6) -> dict:
     """네이버 뉴스 검색 API로 회사 관련 한국어 최신 뉴스를 조회한다.
 

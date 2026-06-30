@@ -30,8 +30,7 @@ export default function RoleInsight() {
   return (
     <>
       <div className="card">
-        <h2>📰 직무·산업 인사이트</h2>
-        <p className="desc">직무를 고르거나 검색하면 <b>핵심 역량·면접 포인트</b>, <b>빈출 질문</b>, <b>관련 최신 뉴스</b>를 한 번에 보여드려요.</p>
+        <p className="desc" style={{ marginBottom: 12 }}>직무를 고르거나 검색하면 <b>핵심 역량·면접 포인트</b>, <b>빈출 질문</b>, <b>관련 최신 뉴스</b>를 한 번에 보여드려요.</p>
         <div className="row">
           <input value={role} onChange={(e) => setRole(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && run()}
             placeholder="예: 반도체 공정, IT 풀스택, 품질관리, 마케팅 …" />

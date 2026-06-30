@@ -82,6 +82,9 @@ function computeMetrics(vols, pitches, durationSec) {
   const volCV = volMean ? std(voiced) / volMean : 0
   const pitchMean = mean(pitches)
   const pitchCV = pitchMean ? std(pitches) / pitchMean : 0
+  // 말끝 흐림: 후반 25% 발화 음량 / 전체 발화 음량 (1보다 작을수록 끝이 작아짐)
+  const tail = vols.slice(Math.floor(vols.length * 0.75)).filter((v) => v >= SILENCE_RMS)
+  const endRatio = volMean && tail.length ? mean(tail) / volMean : 1
   return {
     durationSec: Math.round(durationSec * 10) / 10,
     speakingRatio: Math.round(speakingRatio * 100),
@@ -90,6 +93,7 @@ function computeMetrics(vols, pitches, durationSec) {
     volCV: Math.round(volCV * 100) / 100,
     pitchMean: Math.round(pitchMean),
     pitchCV: Math.round(pitchCV * 100) / 100,
+    endRatio: Math.round(endRatio * 100) / 100,
   }
 }
 
@@ -156,6 +160,15 @@ export function analyzeDelivery(metrics, transcript = '') {
     dims.push(dim('충분함', 'warn', '다소 짧음', '답변이 짧아요. STAR(상황-과제-행동-결과)로 근거를 더 채워보세요.')); tension += 8
   } else {
     dims.push(dim('충분함', 'good', '충분함', '답변 분량이 충분해요.'))
+  }
+
+  // 6) 말끝 (문장 끝 자신감)
+  if (metrics.endRatio != null && metrics.endRatio < 0.6 && chars > 15) {
+    dims.push(dim('말끝', 'bad', '흐려짐', '문장 끝에서 목소리가 작아져요(자신감 부족 인상). 끝까지 또렷하게 맺어보세요.')); tension += 12
+  } else if (metrics.endRatio != null && metrics.endRatio < 0.8 && chars > 15) {
+    dims.push(dim('말끝', 'warn', '약간 작아짐', '말끝을 조금만 더 단단하게 맺으면 좋아요.')); tension += 5
+  } else {
+    dims.push(dim('말끝', 'good', '단단함', '문장 끝까지 자신있게 맺었어요.'))
   }
 
   const tensionScore = Math.max(0, Math.min(100, tension))

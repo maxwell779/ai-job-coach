@@ -86,18 +86,25 @@ def questions_from_materials(materials, job_title: str = "", count: int = 5) -> 
     return {"questions": _parse_list(agent.quick_complete(prompt).strip(), n)}
 
 
-def generate_followup(question: str, answer: str, job_title: str = "") -> dict:
-    """직전 답변을 듣고 면접관이 이어서 던질 '꼬리질문' 1개를 생성한다."""
+def generate_followup(question: str, answer: str, job_title: str = "", persona: str = "압박") -> dict:
+    """직전 답변을 듣고 면접관이 이어서 던질 '꼬리질문' 1개를 생성한다(페르소나 반영).
+
+    압박 면접 대비: 답변의 약한 고리(추상성·근거부족·수치없음·모순·본인 기여 불명확)를
+    정확히 찾아 구체적으로 파고드는 한 방 질문을 만든다.
+    """
     if not (answer or "").strip():
         return {"followup": ""}
-    prompt = f"""당신은 날카로운 면접관입니다. 아래 답변을 듣고 이어서 던질 '꼬리질문' 1개만 만드세요.
-답변에서 더 파고들 지점(구체성 부족, 근거, 수치, 모순, 역할)을 노리세요.
+    prompt = f"""당신은 면접관입니다. 페르소나: {_persona_line(persona)}
+아래 지원자의 답변을 듣고, 실제 면접에서 이어서 던질 '꼬리질문' 1개를 만드세요.
 
 [직무] {job_title or '(미지정)'}
 [원질문] {question}
 [지원자 답변] {answer}
 
-질문 1개만 출력(설명·번호 없이)."""
+꼬리질문 원칙:
+- 답변에서 가장 약한 지점을 1개 골라 파고든다: ① 추상적/뜬구름 → 구체 사례·수치 요구 ② "팀이 했다" → 본인의 구체적 기여 ③ 결과만 있고 과정 없음 → 어떻게 했는지 ④ 근거 없는 주장 → 근거/데이터 ⑤ 모순/과장 → 사실 확인.
+- 실제로 답하기 까다로운, 그러나 공정한 질문으로.
+- 질문 1개만 출력(설명·번호·따옴표 없이)."""
     return {"followup": agent.quick_complete(prompt).strip().strip('"')}
 
 

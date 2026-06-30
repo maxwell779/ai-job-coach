@@ -7,6 +7,7 @@ export default function CompanyResearch() {
   const [job, setJob] = useState('')
   const [data, setData] = useState(null)
   const [brief, setBrief] = useState('')
+  const [biz, setBiz] = useState(null)
   const [loading, setLoading] = useState(false)
   const [briefing, setBriefing] = useState(false)
   const [err, setErr] = useState('')
@@ -14,7 +15,7 @@ export default function CompanyResearch() {
   async function search(e) {
     e?.preventDefault()
     if (!name.trim()) return
-    setLoading(true); setErr(''); setData(null); setBrief('')
+    setLoading(true); setErr(''); setData(null); setBrief(''); setBiz(null)
     try {
       const d = await getCompany(name.trim())
       setData(d)
@@ -29,6 +30,7 @@ export default function CompanyResearch() {
     try {
       const r = await getBrief(targetName || data?.resolved?.corp_name || name, job)
       setBrief(r.brief)
+      if (r.business?.text) setBiz(r.business)
     } catch (e) { /* 요약 실패는 조용히(데이터는 이미 표시됨) */ }
     setBriefing(false)
   }
@@ -39,8 +41,7 @@ export default function CompanyResearch() {
   return (
     <>
       <div className="card">
-        <h2>🏢 기업 분석</h2>
-        <p className="desc">지원할 회사를 검색하면 DART 전자공시·뉴스로 한눈에 정리해 드려요. 면접·자소서 준비용.</p>
+        <p className="desc" style={{ marginBottom: 14 }}>지원할 회사를 검색하면 DART 전자공시·사업보고서·뉴스로 한눈에 정리하고 AI가 요약해 드려요.</p>
         <form onSubmit={search}>
           <div className="row">
             <input placeholder="회사명 (예: 카카오, 삼성전자, 네이버)" value={name} onChange={(e) => setName(e.target.value)} />
@@ -74,8 +75,15 @@ export default function CompanyResearch() {
               {briefing ? 'AI 브리핑 작성 중…' : '🤖 AI 면접 준비 브리핑 받기'}
             </button>
           </div>
-          {briefing && <Loading text="공개 데이터로 면접 포인트를 정리하는 중…" />}
+          {briefing && <Loading text="사업보고서·재무·뉴스로 회사를 요약하는 중…" />}
           {brief && <div style={{ marginTop: 14 }}><MD>{brief}</MD></div>}
+          {biz?.text && (
+            <details style={{ marginTop: 12 }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13.5, color: 'var(--brand)' }}>📄 사업보고서 '사업의 개요' 원문 보기</summary>
+              <div style={{ fontSize: 13, lineHeight: 1.7, marginTop: 8, color: '#374151' }}>{biz.text}</div>
+              {biz.link && <a href={biz.link} target="_blank" rel="noreferrer" style={{ fontSize: 12.5 }}>DART 원문 →</a>}
+            </details>
+          )}
         </div>
       )}
 

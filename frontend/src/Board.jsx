@@ -19,8 +19,7 @@ export default function Board() {
   return (
     <>
       <div className="card">
-        <h2>📋 마이 커리어 보드</h2>
-        <p className="desc">지원 현황·저장한 공고·채용 계획·경험·자료를 한곳에서 관리해요. (브라우저에 저장되며 서버로 전송되지 않습니다)</p>
+        <p className="desc" style={{ marginBottom: 12 }}>지원 현황·저장한 공고·채용 계획·경험·자료를 한곳에서 관리해요. (브라우저에 저장되며 서버로 전송되지 않습니다)</p>
         <div className="tabs" style={{ marginTop: 0 }}>
           {SECTIONS.map((s) => <button key={s.id} className={`tab ${sec === s.id ? 'active' : ''}`} onClick={() => setSec(s.id)}>{s.label}</button>)}
         </div>

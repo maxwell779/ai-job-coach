@@ -28,8 +28,7 @@ export default function Jobs() {
   return (
     <>
       <div className="card">
-        <h2>🔎 채용공고 검색</h2>
-        <p className="desc">고용24/워크넷 공공 채용정보(합법 공개 데이터). 공고를 클릭하면 상세를, ⭐로 저장해 <b>내 보드</b>에서 관리하세요.</p>
+        <p className="desc" style={{ marginBottom: 12 }}>고용24/워크넷 공공 채용정보(합법 공개 데이터). 공고를 클릭하면 상세를, ⭐로 저장해 <b>내 보드</b>에서 관리하세요.</p>
         <form onSubmit={go}>
           <label>키워드</label>
           <input value={f.keyword} onChange={set('keyword')} placeholder="데이터 분석, AI 엔지니어, 마케팅 …" />
