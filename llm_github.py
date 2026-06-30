@@ -1,13 +1,25 @@
 # -*- coding: utf-8 -*-
-"""GitHub Models(무료) 백엔드 — OpenAI 호환 API로 tool-calling 구동. 투자앱과 동일 패턴."""
+"""OpenAI 호환 LLM 백엔드 — GitHub Models / Groq(무료·초고속) 공용. tool-calling 구동."""
 import os
 import json
 from openai import OpenAI
 import tools
 from prompts import SYSTEM
 
-BASE_URL = os.environ.get("GITHUB_MODELS_BASE", "https://models.github.ai/inference")
-MODEL = os.environ.get("GITHUB_MODEL", "openai/gpt-4o-mini")
+
+def _conf():
+    """LLM_PROVIDER에 따라 (base_url, model, api_key) 반환. groq=무료·초고속."""
+    prov = os.environ.get("LLM_PROVIDER", "github").lower()
+    if prov == "groq":
+        return ("https://api.groq.com/openai/v1",
+                os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
+                os.environ.get("GROQ_API_KEY"))
+    return (os.environ.get("GITHUB_MODELS_BASE", "https://models.github.ai/inference"),
+            os.environ.get("GITHUB_MODEL", "openai/gpt-4o-mini"),
+            os.environ.get("GITHUB_TOKEN"))
+
+
+BASE_URL, MODEL, _ = _conf()
 
 TOOL_SCHEMAS = [
     {"type": "function", "function": {
@@ -33,15 +45,16 @@ DISPATCH = {"resolve_company": tools.resolve_company, "get_company_overview": to
 
 def build_client():
     tok = os.environ.get("GITHUB_TOKEN")
+    base, model, tok = _conf()
     if not tok:
-        raise RuntimeError("GITHUB_TOKEN이 없습니다(.env).")
-    return OpenAI(base_url=BASE_URL, api_key=tok)
+        raise RuntimeError("LLM 토큰이 없습니다(GITHUB_TOKEN 또는 GROQ_API_KEY).")
+    return OpenAI(base_url=base, api_key=tok)
 
 
 def complete(prompt: str) -> str:
     """도구 없이 단순 1회 완성(자소서·면접 평가 등)."""
     c = build_client()
-    r = c.chat.completions.create(model=MODEL, messages=[{"role": "user", "content": prompt}], temperature=0.4)
+    r = c.chat.completions.create(model=_conf()[1], messages=[{"role": "user", "content": prompt}], temperature=0.4)
     return r.choices[0].message.content or ""
 
 

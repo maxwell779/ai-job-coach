@@ -10,9 +10,9 @@ MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"]
 
 def build_agent():
     provider = os.environ.get("LLM_PROVIDER", "gemini").lower()
-    if provider == "github":
+    if provider in ("github", "groq"):
         import llm_github
-        return ("github", llm_github.build_client())
+        return (provider, llm_github.build_client())
     from google import genai
     from google.genai import types
     key = os.environ.get("GEMINI_API_KEY")
@@ -26,7 +26,7 @@ def build_agent():
 def ask(agent, question: str):
     """질문 1건 → (답변, 근거리스트)."""
     provider, obj = agent
-    if provider == "github":
+    if provider in ("github", "groq"):
         import llm_github
         return llm_github.ask(obj, question)
     from google.genai import errors as genai_errors
@@ -54,7 +54,7 @@ def ask(agent, question: str):
 def quick_complete(prompt: str) -> str:
     """도구 없이 단순 1회 LLM 완성(자소서·면접 평가). 프로바이더 자동 분기."""
     provider = os.environ.get("LLM_PROVIDER", "gemini").lower()
-    if provider == "github":
+    if provider in ("github", "groq"):
         import llm_github
         return llm_github.complete(prompt)
     from google import genai
