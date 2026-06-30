@@ -11,79 +11,78 @@ license: mit
 
 # 🧭 AI 취업 코치 (AI Job Coach)
 
-> 지원할 회사를 **DART 전자공시**로 분석하고, **자소서를 AI가 첨삭**하고, **음성으로 모의 면접**을 연습하고, **공공 채용공고**를 검색하는 풀스택 취업 도우미.
-> 사람인·잡코리아·자소설닷컴이 약한 **"기업 심층분석 + 면접 연습 + 출처 있는 정직한 AI"** 빈틈을 노립니다.
+> 지원할 회사를 **DART 전자공시**로 분석하고, **자소서를 AI가 첨삭**하고, **음성·표정으로 모의 면접**을 연습하고, 모든 준비를 한곳에서 관리하는 **풀스택 취업 올인원**.
+> *"공시로 회사를 읽고(DART), 내 경험으로 자소서를 쓰고(RAG), 목소리·표정으로 면접을 연습하는 — 무료·한국어·정직한 취업 코치"*
 
-**스택**: React(Vite) · FastAPI · LLM 멀티프로바이더(GitHub Models·Gemini, function-calling) · DART 전자공시 · 네이버 뉴스 API · 고용24/워크넷 채용 OpenAPI · Web Speech API(브라우저 STT) · Docker
+🤗 **라이브 데모**: (HF Spaces 배포 예정) ｜ 💻 **코드**: https://github.com/maxwell779/ai-job-coach
+
+**스택**: React(Vite) · FastAPI · LLM 멀티프로바이더(GitHub Models·Gemini, function-calling) · **RAG(임베딩·코사인)** · DART·네이버·고용24 OpenAPI · **MediaPipe**(표정·시선) · **Web Audio/Whisper**(음성) · Docker
+
+---
+
+### 🖼 미리보기
+
+**🏢 기업·직무 통합 분석** — 회사(DART 공시·재무·사업부문) + 직무 인사이트 + 뉴스를 한 화면에
+![기업·직무 분석](docs/screenshots/02_explore.png)
+
+| 🏠 홈 대시보드 | 🎤 음성·표정 모의면접 |
+|---|---|
+| ![홈](docs/screenshots/01_home.png) | ![모의면접](docs/screenshots/03_interview.png) |
 
 ---
 
 ## ✨ 핵심 기능
 
-| 기능 | 설명 | 데이터 |
-|---|---|---|
-| 🏢 **기업 분석** | 회사명 검색 → 기업개황(대표·설립·업종)·재무(매출/영업이익/순이익 3개년)·최근 공시·뉴스 + **AI 면접 준비 브리핑**(무슨 회사·실적·어필 포인트·예상 질문) | **DART** 전자공시(공식·정확) · 네이버 뉴스 |
-| 📝 **자소서 도우미** | 경험·직무 입력 → **회사 맞춤 초안**(STAR 기법) / 작성한 자소서 **첨삭**(총평·잘된점·개선점·문장수정) | LLM (+회사정보로 문맥 보강) |
-| 🎤 **음성 모의 면접** | 직무·회사 맞춤 질문 생성 → **말로 답변(음성 인식)** → AI 면접관이 점수·피드백·모범답안 | Web Speech API STT + LLM |
-| 🔎 **채용공고** | 키워드·지역·학력·경력·기업형태로 공공 채용정보 검색 | **고용24/워크넷** 공공 OpenAPI |
+| 기능 | 설명 |
+|---|---|
+| 🏢 **기업·직무 분석** | 회사명 → **DART 기업개황·재무·사업보고서 '사업의 개요'·공시·뉴스 + AI 요약**. **대기업 사업부**(삼성 DS/DX/파운드리 등)·**공기업 인재상/채용직군** DB. 직무 **350+** × 18 산업군 인사이트 |
+| 📝 **자소서** | 대표 문항별 **AI 초안**(STAR) + **첨삭** + 회사별 관리. **내 경험·스펙 RAG 자동 반영**. **결과 태그×스펙 합격 패턴 분석**. PDF/TXT 업로드 |
+| 🎤 **음성·표정 모의면접** | **면접관 5페르소나**(압박/인성/직무/임원) · **음성 9지표**(에너지·피치·jitter·shimmer·HNR·속도·침묵·채움어·말끝) · **표정 7지표**(시선·시선고정·미소·자세·끄덕임·깜빡임·감정) · **실시간 시선 알림** · **3축 종합평가** · **꼬리질문/압박 라운드** · **STAR·모범답안** · **시간제한·질문 TTS** · **성장 리포트 PDF** |
+| 🔎 **채용공고** | 고용24/워크넷 공공 OpenAPI 검색(준수사항 UI 포함) |
+| 📋 **내 보드** | 지원현황 트래커 · 일정 캘린더 · 스펙(자격·수상·경력·공모전) · 자료실(RAG 검색) · **점수 추이·반복 약점** |
 
-## 🎯 차별점 (사람인·잡코리아·자소설닷컴 대비)
+## 🎯 차별점 (사람인·뷰인터·Final Round 대비)
 
-- **🇰🇷 기업 심층분석**: 단순 채용공고가 아니라 **DART 공식 재무·공시**로 "이 회사가 어떤 곳인지"를 면접 관점으로 정리.
-- **🎤 음성 면접 연습**: 텍스트가 아니라 **실제로 말하면서** 연습 → STT → AI 피드백 (대부분의 취업 사이트엔 없음).
-- **🤝 정직한 AI**: 모든 사실은 **공개 데이터(DART·뉴스)에 근거**해 답하고, 없는 정보는 지어내지 않음 · 거짓 경력 자소서 생성 거부.
-- **⚖️ 합법 데이터만**: 크롤링 대신 **공식 OpenAPI**(DART·네이버·고용24)만 사용.
+- 🇰🇷 **DART 기반 기업·사업부 심층분석 + AI 요약** — 경쟁사에 없는 빈틈
+- 🎧 **음성 9지표 + 표정 7지표를 무료·온디바이스**(영상 서버 미전송)로 — 뷰인터/Final Round가 유료로 하는 분석
+- 🤝 **정직성**: 출처 표기·환각 거절·거짓 경력 자소서 거부
+- 🏛 **공기업/공무원 NCS** 특화 + 직무 350+ × 산업 × 기업 통합
 
 ## 🏗 아키텍처
 
 ```
-React(Vite) ──HTTP──▶ FastAPI ──┬─ tools.py   기업 리서치(DART 기업개황·재무·공시 + 네이버 뉴스)
-  🏢 기업분석                     ├─ resume.py  자소서 초안·첨삭(LLM)
-  📝 자소서                       ├─ interview.py 면접 질문생성·답변평가(LLM)
-  🎤 모의면접(브라우저 STT)        ├─ jobs.py    고용24/워크넷 채용공고 검색
-  🔎 채용공고                     └─ agent.py   기업 리서치 챗(function-calling, 출처 인용)
+React(Vite, 사이드바 SPA) ──HTTP──▶ FastAPI
+  🏢 기업·직무   ├ tools.py   DART(기업개황·재무·사업보고서·공시) + 네이버뉴스
+  📝 자소서      ├ resume.py  초안·첨삭·합격패턴(RAG)
+  🎤 모의면접    ├ interview.py 질문·평가·꼬리질문·STAR·세션리포트(페르소나)
+  🔎 채용공고    ├ jobs.py    고용24/워크넷
+  📋 보드        ├ rag.py     임베딩+코사인(폴백:키워드)
+  (브라우저)     ├ voice.js   Web Audio 9지표 / face.js MediaPipe 7지표
+                └ transcribe.py Whisper 정확모드(로컬)
 ```
 
 ## 🚀 실행 (로컬)
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env          # 키 입력 (아래 표)
-uvicorn api:app --port 8000   # 백엔드
-cd frontend && npm install && npm run dev   # 프론트(5173, /api→8000)
-# 프로덕션식: cd frontend && npm run build  후  uvicorn api:app --port 8000 → http://localhost:8000
+cp .env.example .env          # 키 입력
+uvicorn api:app --port 8000
+cd frontend && npm install && npm run build   # → http://localhost:8000
+# (선택) Whisper 정확모드: pip install faster-whisper
 ```
 
-| 키 | 발급 | 용도 |
-|---|---|---|
-| `LLM_PROVIDER` | `github` 또는 `gemini` | 로컬=github 권장 |
-| `GITHUB_TOKEN` | github.com/settings/tokens (**Models** 권한) | LLM(로컬) |
-| `GEMINI_API_KEY` | aistudio.google.com/apikey | LLM(HF) |
-| `DART_API_KEY` | opendart.fss.or.kr | 기업개황·재무·공시 |
-| `NAVER_CLIENT_ID/SECRET` | developers.naver.com | 회사 뉴스 |
-| `WORK24_API_KEY` | work24.go.kr (오픈API → **채용정보** 활용신청·승인) | 채용공고 |
-
-> ⚠️ 채용공고 검색은 work24.go.kr 오픈API에서 **'채용정보' 서비스 활용신청·승인**이 된 인증키가 필요합니다(키가 있어도 해당 API 미승인 시 "서비스가 존재하지 않습니다"). 승인되면 코드 수정 없이 바로 동작합니다.
+| 키 | 용도 |
+|---|---|
+| `LLM_PROVIDER` | `github`(로컬) / `gemini`(HF) |
+| `GITHUB_TOKEN` / `GEMINI_API_KEY` | LLM |
+| `DART_API_KEY` | 기업개황·재무·공시 |
+| `NAVER_CLIENT_ID/SECRET` | 회사·직무 뉴스 |
+| `WORK24_API_KEY` | 채용공고(기업회원 승인 필요) |
 
 ## ☁️ 배포 (HF Spaces · Docker)
 
-`git push hf main` → Space(Docker) 자동 빌드(React→FastAPI) → `<user>-<space>.hf.space`.
-> HF 네트워크는 GitHub Models 도달 불가 → HF에선 `LLM_PROVIDER=gemini` (코드가 프로바이더 자동 분기). 음성 인식(STT)은 브라우저(Chrome 권장)에서 동작.
-
-## 📁 구조
-
-```
-api.py        FastAPI(엔드포인트 + React 서빙)
-tools.py      기업 리서치 도구(DART 기업개황·재무·공시 + 네이버 뉴스, 출처 EVIDENCE)
-resume.py     자소서 초안·첨삭
-interview.py  면접 질문 생성·답변 평가
-jobs.py       고용24/워크넷 채용공고 검색
-agent.py      LLM 프로바이더 분기 + 기업 리서치 챗(function-calling)
-llm_github.py GitHub Models(OpenAI 호환) tool-call 루프
-prompts.py    정직성 시스템 지침
-frontend/     React(Vite): CompanyResearch·Resume·Interview·Jobs
-Dockerfile    React 빌드 → FastAPI 서빙(HF)
-```
+`git push hf main` → Docker 자동 빌드(React→FastAPI, 포트 7860).
+> ⚠️ HF에선 `LLM_PROVIDER=gemini`(GitHub Models 도달 불가). Whisper는 로컬 전용(requirements 미포함 → 자동 비활성). 음성·표정 분석은 **Chrome + 마이크/카메라 허용** 필요.
 
 ## ⚠️ 면책
-공개 데이터(DART·네이버·고용24) 기반 정보 제공용입니다. 재무·공시는 지연·오차가 있을 수 있고, AI 생성 자소서/피드백은 참고용입니다. 거짓 경력은 작성하지 않습니다.
+공개 데이터(DART·네이버·고용24) 기반 정보 제공·연습용. 음성/표정 분석은 휴리스틱 참고치이며, AI 생성물은 참고용입니다.
