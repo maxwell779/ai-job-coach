@@ -178,3 +178,45 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
 .muted { color: var(--muted); }
 .center { text-align: center; }
 .foot { text-align: center; color: var(--muted); font-size: 12px; margin-top: 30px; }
+
+/* ── 대시보드 홈 ── */
+.hero-card {
+  display: flex; align-items: center; gap: 18px; color: #fff;
+  background: var(--side-grad); border-radius: var(--radius); padding: 24px 26px; margin-top: 16px;
+  box-shadow: var(--shadow);
+}
+.hero-emoji { font-size: 42px; }
+.hero-card h2 { margin: 0; font-size: 21px; font-weight: 800; }
+.hero-card p { margin: 4px 0 0; opacity: .9; font-size: 14px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 14px; }
+.stat-card {
+  border: none; border-radius: var(--radius); padding: 18px 16px; color: #fff; cursor: pointer;
+  text-align: left; box-shadow: var(--shadow); transition: transform .12s; min-width: 0;
+}
+.stat-card:hover { transform: translateY(-3px); }
+.stat-v { font-size: 30px; font-weight: 800; line-height: 1; }
+.stat-k { font-size: 14px; font-weight: 700; margin-top: 8px; }
+.stat-sub { font-size: 12px; opacity: .85; margin-top: 2px; }
+
+.action-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 6px; }
+.action-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  background: var(--brand-weak); color: var(--brand); border: 1px solid transparent;
+  border-radius: 12px; padding: 16px 10px; font-size: 13.5px; font-weight: 700; cursor: pointer; transition: .12s;
+}
+.action-btn:hover { background: #fff; border-color: var(--brand); transform: translateY(-2px); box-shadow: var(--shadow); }
+.action-ico { font-size: 24px; }
+
+.funnel { display: flex; gap: 8px; margin-top: 14px; align-items: flex-end; }
+.funnel-item { flex: 1; text-align: center; }
+.funnel-bar { color: #fff; font-weight: 800; border-radius: 10px 10px 6px 6px; padding: 14px 4px; font-size: 18px; }
+.funnel-label { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+.dday { font-size: 12.5px; font-weight: 800; padding: 4px 10px; border-radius: 999px; }
+
+/* 버튼 컬러 변형 */
+.btn.ghost { background: var(--brand-weak); color: var(--brand); box-shadow: none; }
+.btn.dark { background: linear-gradient(135deg,#1f2937,#374151); box-shadow: 0 2px 8px rgba(31,41,55,.25); }
+.btn.rec { background: linear-gradient(135deg,#f04452,#dc2626); box-shadow: 0 2px 8px rgba(240,68,82,.35); }
+.btn.ok { background: linear-gradient(135deg,#16a34a,#0ea5e9); }

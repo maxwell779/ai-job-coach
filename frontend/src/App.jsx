@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Home from './Home.jsx'
 import CompanyResearch from './CompanyResearch.jsx'
 import Resume from './Resume.jsx'
 import Interview from './Interview.jsx'
@@ -7,6 +8,7 @@ import Board from './Board.jsx'
 import RoleInsight from './RoleInsight.jsx'
 
 const TABS = [
+  { id: 'home', icon: '🏠', label: '홈', desc: '나의 취업 준비 현황 한눈에' },
   { id: 'company', icon: '🏢', label: '기업 분석', desc: '지원할 회사를 DART로 분석' },
   { id: 'role', icon: '📰', label: '직무·뉴스', desc: '직무 인사이트와 관련 뉴스' },
   { id: 'resume', icon: '📝', label: '자소서', desc: '작성·첨삭·회사별 관리' },
@@ -16,7 +18,7 @@ const TABS = [
 ]
 
 export default function App() {
-  const [tab, setTab] = useState('company')
+  const [tab, setTab] = useState('home')
   const active = TABS.find((t) => t.id === tab)
   return (
     <div className="layout">
@@ -39,6 +41,7 @@ export default function App() {
           <p>{active.desc}</p>
         </header>
         <div className="content">
+          {tab === 'home' && <Home onNav={setTab} />}
           {tab === 'company' && <CompanyResearch />}
           {tab === 'role' && <RoleInsight />}
           {tab === 'resume' && <Resume />}
