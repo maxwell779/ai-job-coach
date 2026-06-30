@@ -71,4 +71,9 @@ export const extractText = (file) => {
   return fetch('/api/extract_text', { method: 'POST', body: fd }).then(handle)
 }
 
+export const transcribeAudio = (blob) => {
+  const fd = new FormData(); fd.append('file', blob, 'audio.webm')
+  return fetch('/api/transcribe', { method: 'POST', body: fd }).then(handle)
+}
+
 export const health = () => fetch('/api/health').then(handle)

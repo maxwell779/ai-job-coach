@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { genQuestions, evalAnswer, followup, followupChain, questionsFromMaterials, sessionReport, modelAnswer, starCoach } from './api.js'
+import { genQuestions, evalAnswer, followup, followupChain, questionsFromMaterials, sessionReport, modelAnswer, starCoach, transcribeAudio, health } from './api.js'
 import { MD, Loading, ErrorBox } from './ui.jsx'
 import { startRecorder, analyzeDelivery } from './voice.js'
 import { startCamera, runFaceAnalysis, analyzeFace } from './face.js'
@@ -16,7 +16,10 @@ export default function Interview({ initialCompany = '', initialJob = '' }) {
   const [persona, setPersona] = useState('일반')
   const [cam, setCam] = useState(false)
   const [timeLimit, setTimeLimit] = useState(0)
-  const cfg = { persona, cam, timeLimit }
+  const [whisper, setWhisper] = useState(false)
+  const [whisperOk, setWhisperOk] = useState(false)
+  useEffect(() => { health().then((h) => setWhisperOk(!!h.whisper)).catch(() => {}) }, [])
+  const cfg = { persona, cam, timeLimit, whisper: whisper && whisperOk }
   return (
     <>
       <div className="card">
@@ -41,6 +44,12 @@ export default function Interview({ initialCompany = '', initialJob = '' }) {
               {TIMES.map((t) => <option key={t.v} value={t.v}>⏱ {t.t}</option>)}
             </select>
           </div>
+          {whisperOk && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', margin: 0, flex: '0 0 auto' }} title="로컬 Whisper 정확 인식">
+              <input type="checkbox" checked={whisper} onChange={(e) => setWhisper(e.target.checked)} style={{ width: 18 }} />
+              🎯 정확 모드(Whisper)
+            </label>
+          )}
         </div>
         <div className="tabs" style={{ marginTop: 14 }}>
           <button className={`tab ${src === 'ai' ? 'active' : ''}`} onClick={() => setSrc('ai')}>🤖 AI 맞춤</button>
@@ -207,7 +216,7 @@ function QuizRunner({ questions, job, cfg }) {
 }
 
 function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }) {
-  const { persona, cam, timeLimit } = cfg
+  const { persona, cam, timeLimit, whisper } = cfg
   const [q, setQ] = useState(question)
   const [answer, setAnswer] = useState('')
   const [rec, setRec] = useState(false)
@@ -223,6 +232,8 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
   const [err, setErr] = useState(''); const [saved, setSaved] = useState(false)
   const recogRef = useRef(null), recorderRef = useRef(null), faceRef = useRef(null), videoRef = useRef(null), camRef = useRef(null)
   const baseRef = useRef(''), answerRef = useRef(''), timerRef = useRef(null)
+  const mediaRecRef = useRef(null), chunksRef = useRef([]), mediaStreamRef = useRef(null)
+  const [transcribing, setTranscribing] = useState(false)
 
   useEffect(() => { answerRef.current = answer }, [answer])
   useEffect(() => () => { stopAll(true); try { camRef.current?.stop() } catch {} }, [])
@@ -242,6 +253,9 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
 
   function stopAll(silent) {
     try { recogRef.current?.stop() } catch {}
+    try { if (mediaRecRef.current && mediaRecRef.current.state !== 'inactive') mediaRecRef.current.stop() } catch {}
+    mediaRecRef.current = null
+    if (silent) { try { mediaStreamRef.current?.getTracks().forEach((t) => t.stop()) } catch {} }
     const m = recorderRef.current ? recorderRef.current.stop() : null
     recorderRef.current = null
     const fm = faceRef.current ? faceRef.current.stop() : null
@@ -272,7 +286,25 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
       catch { setErr('표정 분석을 시작하지 못했어요.') }
       setCamLoading(false)
     }
-    if (SR) {
+    if (whisper) {
+      // 정확 모드: MediaRecorder로 녹음 → 종료 시 Whisper로 변환
+      try {
+        const ms = await navigator.mediaDevices.getUserMedia({ audio: true })
+        mediaStreamRef.current = ms; chunksRef.current = []
+        const mr = new MediaRecorder(ms)
+        mr.ondataavailable = (e) => { if (e.data && e.data.size) chunksRef.current.push(e.data) }
+        mr.onstop = async () => {
+          try { ms.getTracks().forEach((t) => t.stop()) } catch {}
+          const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+          if (blob.size < 1000) return
+          setTranscribing(true)
+          try { const r = await transcribeAudio(blob); if (r.text) setAnswer((a) => (a ? a + ' ' : '') + r.text); else if (r.error) setErr(r.error) }
+          catch (e) { setErr('Whisper 변환 실패: ' + e.message) }
+          setTranscribing(false)
+        }
+        mediaRecRef.current = mr; mr.start()
+      } catch { setErr('마이크 권한이 필요해요(정확 모드).') }
+    } else if (SR) {
       const r = new SR(); r.lang = 'ko-KR'; r.continuous = true; r.interimResults = true
       baseRef.current = answer ? answer + ' ' : ''
       r.onresult = (e) => { let s = ''; for (let i = 0; i < e.results.length; i++) s += e.results[i][0].transcript; setAnswer(baseRef.current + s) }
@@ -333,7 +365,7 @@ function QuestionCard({ n, total, question, job, cfg, onRecord, onPrev, onNext }
         <div style={{ margin: '10px 0' }}>
           <button className={`btn ${rec ? 'rec' : 'dark'}`} onClick={toggleRec}>{rec ? '⏹ 종료' : '🎤 음성으로 답변'}</button>
         </div>
-        <div className="hint">{rec ? '말씀하세요… 종료하면 분석해요.' : (cam ? '버튼을 누르면 음성+표정·시선을 함께 분석해요.' : '버튼을 누르고 말하면 음성→텍스트 + 목소리 분석.')}</div>
+        <div className="hint">{transcribing ? '🎯 Whisper로 정확 변환 중…' : rec ? (whisper ? '말씀하세요… 종료하면 Whisper로 변환해요(정확).' : '말씀하세요… 종료하면 분석해요.') : (cam ? '버튼을 누르면 음성+표정·시선을 함께 분석해요.' : '버튼을 누르고 말하면 음성→텍스트 + 목소리 분석.')}</div>
       </div>
 
       {delivery && <DeliveryCard d={delivery} />}

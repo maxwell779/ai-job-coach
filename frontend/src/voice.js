@@ -77,6 +77,11 @@ function localVar(a) {
   let s = 0; for (let i = 1; i < a.length; i++) s += Math.abs(a[i] - a[i - 1])
   s /= (a.length - 1); const m = mean(a); return m ? s / m : 0
 }
+// 정규화 자기상관 피크 c(0~1) → HNR(dB), Boersma: HNR=10·log10(c/(1-c))
+function hnrDb(c) {
+  const x = Math.min(0.999, Math.max(0.001, c || 0))
+  return Math.round(10 * Math.log10(x / (1 - x)) * 10) / 10
+}
 
 // 3점 메디안 필터 — 자기상관 옥타브 점프(이상치) 제거로 피치/jitter 정확도↑
 function medianSmooth(a) {
@@ -121,7 +126,7 @@ function computeMetrics(vols, pitchesRaw, durationSec, clarities = []) {
     pitchCV: Math.round(pitchCV * 100) / 100,
     jitter: Math.round(jitter * 1000) / 1000,
     shimmer: Math.round(shimmer * 1000) / 1000,
-    hnr: Math.round(mean(clarities) * 100), // 음성 명료도(HNR 근사) 0~100
+    hnr: hnrDb(mean(clarities)), // 음성 명료도 HNR(dB) — Boersma 자기상관법
     endRatio: Math.round(endRatio * 100) / 100,
   }
 }
@@ -210,11 +215,11 @@ export function analyzeDelivery(metrics, transcript = '') {
     dims.push(dim('억양', 'good', '풍부함', '억양 변화가 있어요.'))
   }
 
-  // 7-b) 음성 명료도(HNR 근사) — 또렷함/맑음
+  // 7-b) 음성 명료도(HNR dB) — 또렷함/맑음 (정상 음성 대략 15dB+)
   if (metrics.hnr != null && metrics.pitchMean > 0) {
-    if (metrics.hnr >= 55) dims.push(dim('음성 명료도', 'good', '또렷함', '목소리가 또렷하고 맑게 전달돼요.'))
-    else if (metrics.hnr >= 38) dims.push(dim('음성 명료도', 'warn', '보통', '발음을 또박또박하면 더 또렷하게 들려요.'))
-    else { dims.push(dim('음성 명료도', 'bad', '웅얼거림', '목소리가 다소 웅얼거려요. 입을 크게 벌려 또박또박 발음해보세요.')); tension += 6 }
+    if (metrics.hnr >= 13) dims.push(dim('음성 명료도', 'good', `${metrics.hnr}dB 또렷`, '목소리가 또렷하고 맑게 전달돼요(HNR 양호).'))
+    else if (metrics.hnr >= 7) dims.push(dim('음성 명료도', 'warn', `${metrics.hnr}dB`, '발음을 또박또박하면 더 또렷하게 들려요.'))
+    else { dims.push(dim('음성 명료도', 'bad', `${metrics.hnr}dB 웅얼`, '목소리가 다소 웅얼거려요(잡음↑). 입을 크게 벌려 또박또박.')); tension += 6 }
   }
 
   // 8) 발화 에너지 — 평균 성량(자신감의 객관 지표, 보조)

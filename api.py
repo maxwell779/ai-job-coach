@@ -42,10 +42,21 @@ def _get_agent():
 
 @app.get("/api/health")
 def health():
+    import transcribe
     return {"ok": True, "provider": os.environ.get("LLM_PROVIDER", "gemini"),
             "dart": bool(os.environ.get("DART_API_KEY")),
             "work24": bool(os.environ.get("WORK24_API_KEY")),
-            "naver": bool(os.environ.get("NAVER_CLIENT_ID"))}
+            "naver": bool(os.environ.get("NAVER_CLIENT_ID")),
+            "whisper": transcribe.available()}
+
+
+@app.post("/api/transcribe")
+async def transcribe_audio(file: UploadFile = File(...)):
+    import transcribe
+    raw = await file.read()
+    if len(raw) > 25 * 1024 * 1024:
+        return JSONResponse({"error": "25MB 이하 음성만 가능합니다."}, status_code=400)
+    return transcribe.transcribe(raw)
 
 
 # ── 기업 리서치(데이터) ──
